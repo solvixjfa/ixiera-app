@@ -35,7 +35,7 @@ export function SolutionsSection() {
             Solutions We Provide
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            End-to-end digital solutions untuk membantu agency berkembang
+            End-to-end digital solutions untuk membantu bisnis anda berkembang
           </p>
         </div>
 

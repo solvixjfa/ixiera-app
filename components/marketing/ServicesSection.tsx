@@ -9,28 +9,28 @@ const services = [
     title: 'Web & App Development',
     description: 'Website yang cepat, scalable, dan siap berkembang bersama bisnis Anda. Dibangun dengan teknologi modern — bukan template yang semua orang pakai.',
     tags: ['Next.js', 'TypeScript', 'Supabase', 'Vercel'],
-    href: '/services/web-app',
+    href: '/solutions/web-app',
   },
   {
     icon: Zap,
     title: 'Business Automation',
     description: 'Kalau tim Anda masih copy-paste data setiap hari — itu bukan kerja keras, itu pemborosan. Kami otomasi proses bisnis dari ujung ke ujung.',
     tags: ['n8n', 'Webhook', 'API Integration', 'No-code / Low-code'],
-    href: '/services/automation',
+    href: '/solutions/automation',
   },
   {
     icon: Brain,
     title: 'AI Internal Setup',
     description: 'AI yang tahu SOP perusahaan Anda, bantu tim marketing menulis konten, menjawab pertanyaan internal, dan berjalan di infrastruktur Anda sendiri. Data tidak pernah keluar.',
     tags: ['Local LLM', 'Self-hosted', 'VPS / On-premise', 'Custom Knowledge Base'],
-    href: '/services/ai-internal',
+    href: '/solutions/ai-internal',
   },
   {
     icon: MessageCircle,
     title: 'AI Agentic Sales & CS',
     description: 'Bukan sekadar chatbot yang balas pesan. Ini AI agent yang bisa berpikir, mengikuti alur percakapan, memahami produk Anda, dan mendorong konversi — 24 jam sehari.',
     tags: ['LangGraph', 'WhatsApp / Web', 'RAG', 'Multi-step Reasoning'],
-    href: '/services/ai-agent',
+    href: '/solutions/ai-agent',
   },
 ];
 

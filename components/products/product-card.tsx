@@ -14,7 +14,7 @@ interface Product {
   price_min: number | null;
   price_max: number | null;
   price_model: string | null;
-  thumbnail_url?: string;
+  thumbnail?: string;
   slug: string;
 }
 
@@ -29,9 +29,9 @@ export function ProductCard({ product }: { product: Product }) {
       <Card className="overflow-hidden hover:shadow-lg dark:hover:shadow-lg transition-shadow group cursor-pointer h-full">
         {/* Thumbnail */}
         <div className="relative w-full h-48 bg-gray-100 dark:bg-gray-800 overflow-hidden">
-          {product.thumbnail_url ? (
+          {product.thumbnail ? (
             <Image
-              src={product.thumbnail_url}
+              src={product.thumbnail}
               alt={product.name}
               fill
               className="object-cover group-hover:scale-105 transition-transform"

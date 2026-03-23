@@ -12,7 +12,7 @@ interface Product {
   price_min: number | null;
   price_max: number | null;
   price_model: string | null;
-  thumbnail_url?: string;
+  thumbnail?: string;
   slug: string;
 }
 

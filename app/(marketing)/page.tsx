@@ -4,37 +4,45 @@ import { ServicesSection } from '@/components/marketing/ServicesSection';
 import { HowWeWorkSection } from '@/components/marketing/HowWeWorkSection';
 import { ProductCard, ProductCardSkeleton } from '@/components/products/product-card';
 import { ProofSection } from '@/components/marketing/ProofSection';
-import { Navbar } from '@/components/marketing/Navbar';
-import { Footer } from '@/components/marketing/Footer';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
+import { TrustSection } from '@/components/marketing/TrustSection';
 
-// Tipe data produk – sesuaikan dengan props yang diterima ProductCard
+
+// Tipe data produk disesuaikan dengan kebutuhan ProductCard
 interface Product {
   id: string;
   name: string;
   description: string;
   category: string;
-  price: number;        // jika pakai price_min/price_max, ganti sesuai kebutuhan
+  price_min: number;   // Menggantikan price
+  price_max: number;   // Tambahan baru
+  price_model: string; // Tambahan baru
   thumbnail?: string;
   slug: string;
 }
 
 async function FeaturedProducts() {
-  const supabase = createServerComponentClient({ cookies });
+  // Menggunakan standar Next.js 15 dan Supabase SSR terbaru
+  const supabase = await createClient();
+  
   const { data: products, error } = await supabase
     .from('products')
-    .select('id, name, description, category, price, thumbnail, slug')
+    // Pastikan nama kolom di bawah ini ditarik semua
+    .select('id, name, description, category, price_min, price_max, price_model, thumbnail:thumbnail_url, slug')
     .eq('is_active', true)
     .order('created_at', { ascending: false })
     .limit(3);
 
   if (error || !products) {
-    console.error('Error fetching featured products:', error);
-    return null;
+    console.error('Error fetching featured products:', error.message);
+    return (
+      <div className="text-center text-red-500 py-10 border border-red-200 rounded-lg bg-red-50 dark:bg-red-950/20">
+        Gagal memuat produk. Pastikan tabel 'products' sudah dibuat di database Supabase kamu.
+      </div>
+    );
   }
 
   return (
@@ -49,12 +57,11 @@ async function FeaturedProducts() {
 export default function Home() {
   return (
     <>
-      <Navbar />
       <Hero />
       <DifferentiatorSection />
       <ServicesSection />
       <HowWeWorkSection />
-
+      <TrustSection />
       {/* Featured Products Section */}
       <section className="w-full bg-gray-50 dark:bg-gray-900 py-20 px-4 md:py-32 md:px-6">
         <div className="mx-auto max-w-6xl">
@@ -111,8 +118,6 @@ export default function Home() {
           </p>
         </div>
       </section>
-
-      <Footer />
     </>
   );
 }

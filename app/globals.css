@@ -59,11 +59,11 @@
 }
 @keyframes marquee-left {
   0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  100% { transform: translateX(-33.333%); }
 }
 
 @keyframes marquee-right {
-  0% { transform: translateX(-50%); }
+  0% { transform: translateX(-33.333%); }
   100% { transform: translateX(0); }
 }
 
@@ -87,4 +87,53 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+/* ============================================
+   IXIERA CUSTOM CLASSES — tambahkan di globals.css
+   Aman: semua class prefixed "ixiera-"
+   Tidak override shadcn/ui apapun
+   ============================================ */
+
+/* Label kecil uppercase di atas headline */
+.ixiera-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #9ca3af; /* gray-400 */
+}
+
+/* Card hover: border jadi hitam, shadow naik */
+.ixiera-card {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.ixiera-card:hover {
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.10);
+  border-color: #111827; /* gray-900 */
+}
+
+/* Dark mode card hover */
+.dark .ixiera-card:hover {
+  box-shadow: 0 8px 32px 0 rgba(255, 255, 255, 0.06);
+  border-color: #f9fafb; /* gray-50 */
+}
+
+/* Commitment card: border elegan, no background */
+.ixiera-commitment-card {
+  border: 1px solid #e5e7eb; /* gray-200 */
+  border-radius: 0.75rem;
+  transition: border-color 0.2s ease;
+}
+
+.ixiera-commitment-card:hover {
+  border-color: #111827;
+}
+
+.dark .ixiera-commitment-card {
+  border-color: #1f2937; /* gray-800 */
+}
+
+.dark .ixiera-commitment-card:hover {
+  border-color: #f9fafb;
 }
