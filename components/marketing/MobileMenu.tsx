@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import { Menu, ChevronDown } from "lucide-react";
 
 // SINKRONISASI: Ambil daftar menu dari Navbar
 import { menuItems } from "./Navbar";
@@ -17,8 +17,18 @@ interface User {
 export default function MobileMenu() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // State untuk ngontrol dropdown mana yang kebuka
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
-  // Cek apakah user sudah login (sama kayak di Desktop)
+  // Fungsi buat nutup/buka dropdown
+  const toggleMenu = (label: string) => {
+    setOpenMenus((prev) => ({
+      ...prev,
+      [label]: !prev[label],
+    }));
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -44,25 +54,37 @@ export default function MobileMenu() {
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      {/* Tambahin overflow-y-auto biar kalau layarnya kecil, menunya bisa di-scroll ke bawah */}
       <SheetContent side="right" className="overflow-y-auto">
         <div className="flex flex-col gap-6">
           <div className="text-lg font-bold text-black dark:text-white">Menu</div>
           
-          {/* 👇 INI BAGIAN YANG DI-UPGRADE 👇 */}
           <div className="flex flex-col gap-4">
             {menuItems.map((item) => (
               <div key={item.label} className="flex flex-col gap-2">
-                {/* Menu Utama (Products, Solutions, Blog, dll) */}
-                <Link
-                  href={item.href}
-                  className="text-base font-medium text-gray-900 dark:text-white hover:text-primary transition-colors"
-                >
-                  {item.label}
-                </Link>
                 
-                {/* Kalau ada subItems (Khusus Solutions), render menjorok ke dalam */}
-                {item.subItems && (
+                {/* Kalau PUNYA subItems, bikin jadi tombol Dropdown */}
+                {item.subItems ? (
+                  <button
+                    onClick={() => toggleMenu(item.label)}
+                    className="flex items-center justify-between text-base font-medium text-gray-900 dark:text-white hover:text-primary transition-colors text-left"
+                  >
+                    {item.label}
+                    <ChevronDown 
+                      className={`w-4 h-4 transition-transform ${openMenus[item.label] ? 'rotate-180' : ''}`} 
+                    />
+                  </button>
+                ) : (
+                  // Kalau GAK PUNYA subItems, jadi Link biasa
+                  <Link
+                    href={item.href}
+                    className="text-base font-medium text-gray-900 dark:text-white hover:text-primary transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                )}
+                
+                {/* Render subItems cuma kalau openMenus[item.label] itu TRUE */}
+                {item.subItems && openMenus[item.label] && (
                   <div className="flex flex-col gap-3 border-l-2 border-gray-200 dark:border-gray-800 ml-2 pl-4 mt-1">
                     {item.subItems.map((sub) => (
                       <Link
@@ -78,13 +100,10 @@ export default function MobileMenu() {
               </div>
             ))}
           </div>
-          {/* 👆 SELESAI UPGRADE 👆 */}
 
-          {/* Action Buttons di bagian bawah mobile menu */}
           <div className="flex flex-col gap-2 border-t border-gray-200 dark:border-gray-800 pt-6">
             {!loading && (
               user ? (
-                // SAKLAR ON: TAMPILAN KALAU SUDAH LOGIN
                 <>
                   <div className="text-sm text-gray-500 mb-2 px-1 truncate">
                     {user.email}
@@ -104,7 +123,6 @@ export default function MobileMenu() {
                   </Button>
                 </>
               ) : (
-                // SAKLAR OFF: TAMPILAN KALAU BELUM LOGIN
                 <>
                   <Button
                     variant="outline"

@@ -18,7 +18,7 @@ export const menuItems = [
       { label: 'Web & App Development', href: '/solutions/web-app', desc: 'Sistem kustom & portal klien' },
       { label: 'Business Automation', href: '/solutions/automation', desc: 'Otomasi alur kerja & integrasi' },
       { label: 'AI Internal Setup', href: '/solutions/ai-internal', desc: 'AI pintar untuk SOP perusahaan' },
-      { label: 'AI Agentic Sales & CS', href: '/solutions/ai-agent', desc: 'Agent AI untuk konversi sales' },
+      { label: 'AI Agentic Sales & CS', href: '/solutions/ai-agentic', desc: 'Agent AI untuk konversi sales' },
     ]
   },
   { label: 'Blog', href: '/blog' },
