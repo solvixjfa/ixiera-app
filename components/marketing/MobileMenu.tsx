@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, ChevronDown } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Menu, ChevronDown, User as UserIcon } from "lucide-react";
 
 // SINKRONISASI: Ambil daftar menu dari Navbar
 import { menuItems } from "./Navbar";
@@ -17,11 +17,8 @@ interface User {
 export default function MobileMenu() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  // State untuk ngontrol dropdown mana yang kebuka
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
-  // Fungsi buat nutup/buka dropdown
   const toggleMenu = (label: string) => {
     setOpenMenus((prev) => ({
       ...prev,
@@ -43,104 +40,106 @@ export default function MobileMenu() {
         setLoading(false);
       }
     };
-
     fetchUser();
   }, []);
 
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" className="md:hidden">
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="overflow-y-auto">
-        <div className="flex flex-col gap-6">
-          <div className="text-lg font-bold text-black dark:text-white">Menu</div>
-          
-          <div className="flex flex-col gap-4">
+      
+      <SheetContent side="right" className="w-[300px] sm:w-[350px] flex flex-col p-0 border-l border-border/50">
+        <SheetHeader className="p-6 border-b border-border/50 text-left">
+          <SheetTitle className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+            Ixiera.id
+          </SheetTitle>
+        </SheetHeader>
+
+        <div className="flex-1 overflow-y-auto px-4 py-6">
+          <div className="flex flex-col gap-2">
             {menuItems.map((item) => (
-              <div key={item.label} className="flex flex-col gap-2">
-                
-                {/* Kalau PUNYA subItems, bikin jadi tombol Dropdown */}
+              <div key={item.label} className="flex flex-col">
                 {item.subItems ? (
                   <button
                     onClick={() => toggleMenu(item.label)}
-                    className="flex items-center justify-between text-base font-medium text-gray-900 dark:text-white hover:text-primary transition-colors text-left"
+                    className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium rounded-xl hover:bg-muted/50 transition-all duration-200"
                   >
-                    {item.label}
+                    <span>{item.label}</span>
                     <ChevronDown 
-                      className={`w-4 h-4 transition-transform ${openMenus[item.label] ? 'rotate-180' : ''}`} 
+                      className={`w-4 h-4 text-muted-foreground transition-transform duration-300 ${openMenus[item.label] ? 'rotate-180' : ''}`} 
                     />
                   </button>
                 ) : (
-                  // Kalau GAK PUNYA subItems, jadi Link biasa
                   <Link
                     href={item.href}
-                    className="text-base font-medium text-gray-900 dark:text-white hover:text-primary transition-colors"
+                    className="flex items-center w-full px-4 py-3 text-sm font-medium rounded-xl hover:bg-muted/50 transition-all duration-200"
                   >
                     {item.label}
                   </Link>
                 )}
                 
-                {/* Render subItems cuma kalau openMenus[item.label] itu TRUE */}
-                {item.subItems && openMenus[item.label] && (
-                  <div className="flex flex-col gap-3 border-l-2 border-gray-200 dark:border-gray-800 ml-2 pl-4 mt-1">
-                    {item.subItems.map((sub) => (
+                {/* Tampilan Sub-menu yang lebih elegan (Inner Card) */}
+                <div 
+                  className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                    openMenus[item.label] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'
+                  }`}
+                >
+                  <div className="flex flex-col gap-1 p-2 ml-4 bg-muted/30 rounded-lg border border-border/50">
+                    {item.subItems?.map((sub) => (
                       <Link
                         key={sub.href}
                         href={sub.href}
-                        className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                        className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
                       >
                         {sub.label}
                       </Link>
                     ))}
                   </div>
-                )}
+                </div>
               </div>
             ))}
           </div>
+        </div>
 
-          <div className="flex flex-col gap-2 border-t border-gray-200 dark:border-gray-800 pt-6">
-            {!loading && (
-              user ? (
-                <>
-                  <div className="text-sm text-gray-500 mb-2 px-1 truncate">
-                    {user.email}
+        {/* Action Area di bawah (Sticky Bottom) */}
+        <div className="p-6 border-t border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          {!loading && (
+            user ? (
+              <div className="flex flex-col gap-4">
+                {/* Profile Card User */}
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border/50">
+                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                    <UserIcon className="h-4 w-4 text-primary" />
                   </div>
-                  <Button 
-                    className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200" 
-                    asChild
-                  >
-                    <Link href="/dashboard/overview">Dashboard</Link>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full border-black dark:border-white text-black dark:text-white dark:hover:bg-gray-800 hover:bg-gray-100"
-                    asChild
-                  >
+                  <div className="flex flex-col overflow-hidden">
+                    <span className="text-xs font-medium text-muted-foreground">Logged in as</span>
+                    <span className="text-sm font-medium truncate">{user.email}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" className="w-full rounded-xl" asChild>
                     <Link href="/auth/logout">Logout</Link>
                   </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    className="w-full border-black dark:border-white text-black dark:text-white dark:hover:bg-gray-800 hover:bg-gray-100"
-                    asChild
-                  >
-                    <Link href="/auth/login">Login</Link>
+                  <Button className="w-full rounded-xl shadow-md" asChild>
+                    <Link href="/dashboard/overview">Dashboard</Link>
                   </Button>
-                  <Button 
-                    className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200" 
-                    asChild
-                  >
-                    <Link href="/auth/sign-up">Get Started</Link>
-                  </Button>
-                </>
-              )
-            )}
-          </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <Button variant="outline" className="w-full rounded-xl h-11" asChild>
+                  <Link href="/auth/login">Log In</Link>
+                </Button>
+                <Button className="w-full rounded-xl h-11 shadow-md" asChild>
+                  <Link href="/auth/sign-up">Get Started</Link>
+                </Button>
+              </div>
+            )
+          )}
         </div>
       </SheetContent>
     </Sheet>
