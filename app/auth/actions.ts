@@ -1,27 +1,22 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 
-// Definisikan tipe untuk state yang direturn
 export type FormState = {
   error: string | null;
+  success: boolean;
 };
 
 export async function loginAction(
-  prevState: FormState, // <-- Tipe ini harus sesuai dengan inisial state di komponen UI
+  prevState: FormState,
   formData: FormData
-): Promise<FormState> { // <-- Return type wajib FormState
+): Promise<FormState> {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
-  // Basic validation
   if (!email || !password) {
-    return { error: "Please provide both email and password" };
+    return { error: "Please provide both email and password", success: false };
   }
-
-  let isSuccess = false;
 
   try {
     const supabase = await createClient();
@@ -32,22 +27,15 @@ export async function loginAction(
     });
 
     if (error) {
-      return { error: error.message };
+      return { error: error.message, success: false };
     }
 
-    // Jika sukses, tandai true
-    isSuccess = true;
+    // KUNCI UTAMA: Jangan pakai redirect() di sini! 
+    // Kita cuma ngasih tau komponen kalau loginnya sukses.
+    return { error: null, success: true };
+    
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "An error occurred";
-    return { error: message };
+    return { error: message, success: false };
   }
-
-  // Redirect dilakukan di luar blok try/catch untuk menghindari error Next.js
-  if (isSuccess) {
-    revalidatePath('/', 'layout'); 
-    redirect('/dashboard/overview');
-  }
-
-  // Fallback return (kalau-kalau tidak masuk try atau tidak error tapi tidak sukses)
-  return { error: null };
 }

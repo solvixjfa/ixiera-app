@@ -14,10 +14,20 @@ export default async function TicketDetailPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
-  // 1. Cek User Login (Sesuai gaya referensi Anda)
+ // 1. Cek User Login (TANPA REDIRECT!)
   const { data: { user } } = await supabase.auth.getUser();
+
   if (!user) {
-    redirect("/auth/login");
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-lg font-bold">Menyiapkan data overview...</h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            Jika tampilan ini tidak berubah, silakan muat ulang halaman.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   // 2. Fetch Ticket Info

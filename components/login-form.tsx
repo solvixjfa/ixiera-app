@@ -41,11 +41,11 @@ export function LoginForm({
       setError(error.message);
       setIsLoading(false);
     } else {
-      // Refresh cache client, lalu lempar ke dashboard!
-      router.refresh();
-      router.push("/dashboard/overview");
+      // PAKE CARA BARBAR: Paksa browser pindah halaman secara full!
+      // Ini ngejamin karcis (cookie) dari Supabase beneran kebawa.
+      window.location.href = "/dashboard/overview";
     }
-  };
+  }; // <--- INI KURUNG PENUTUP YANG TADI HILANG BOS!
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>

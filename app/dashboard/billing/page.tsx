@@ -72,18 +72,27 @@ function formatRupiah(amount: number): string {
 export default async function BillingPage() {
   const supabase = await createClient();
 
-  // Get current user session
-  const { data: authData, error: authError } = await supabase.auth.getUser();
+  // 1. Cek User Login (TANPA REDIRECT!)
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (authError || !authData.user) {
-    redirect("/auth/login");
+  if (!user) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-lg font-bold">Menyiapkan data overview...</h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            Jika tampilan ini tidak berubah, silakan muat ulang halaman.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   // Get client_id from clients table
   const { data: clientData, error: clientError } = await supabase
     .from("clients")
     .select("id")
-    .eq("user_id", authData.user.id)
+    .eq("user_id", user.id)
     .single();
 
   if (clientError || !clientData) {

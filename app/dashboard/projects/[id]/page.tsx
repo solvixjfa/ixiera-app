@@ -38,10 +38,6 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   // Get current user session
   const { data: authData, error: authError } = await supabase.auth.getUser();
 
-  if (authError || !authData.user) {
-    redirect("/auth/login");
-  }
-
   // Query project detail by id
   const { data: project, error: projectError } = await supabase
     .from("projects")

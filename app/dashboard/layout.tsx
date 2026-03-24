@@ -21,11 +21,6 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // ==========================================================
-  // 2. SATPAM DALAM RESMI DIPECAT! 
-  // Bagian redirect("/auth/login") udah gw hapus dari sini.
-  // Sekarang urusan tendang-menendang 100% dipegang sama proxy.ts
-  // ==========================================================
 
   const navItems = [
     { label: "Overview", href: "/dashboard/overview", icon: LayoutDashboard },
