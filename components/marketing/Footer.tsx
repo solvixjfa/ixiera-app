@@ -116,9 +116,9 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Column 3: Perusahaan */}
+          {/* Column 3: Jelajahi */}
           <div>
-            <h4 className="mb-4 font-bold text-black dark:text-white">Perusahaan</h4>
+            <h4 className="mb-4 font-bold text-black dark:text-white">Jelajahi</h4>
             <ul className="space-y-3">
               {company.map((item) => (
                 <li key={item.href}>

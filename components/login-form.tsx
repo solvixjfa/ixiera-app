@@ -1,16 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
-import { loginAction } from "@/app/auth/actions";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
@@ -19,9 +14,38 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const [state, formAction, isPending] = useActionState(loginAction, {
-    error: null,
-  });
+  // Kita balik pakai useState biasa biar aman sentosa
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    // Bikin klien Supabase langsung di browser
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setError(error.message);
+      setIsLoading(false);
+    } else {
+      // Refresh cache client, lalu lempar ke dashboard!
+      router.refresh();
+      router.push("/dashboard/overview");
+    }
+  };
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -33,17 +57,18 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={formAction}>
+          <form onSubmit={handleLogin}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
-                  name="email"
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="m@example.com"
                   required
-                  disabled={isPending}
+                  disabled={isLoading}
                 />
               </div>
               <div className="grid gap-2">
@@ -58,21 +83,22 @@ export function LoginForm({
                 </div>
                 <Input
                   id="password"
-                  name="password"
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
-                  disabled={isPending}
+                  disabled={isLoading}
                 />
               </div>
-              {state.error && (
-                <p className="text-sm text-red-500">{state.error}</p>
+              {error && (
+                <p className="text-sm text-red-500">{error}</p>
               )}
               <Button
                 type="submit"
                 className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
-                disabled={isPending}
+                disabled={isLoading}
               >
-                {isPending ? "Logging in..." : "Login"}
+                {isLoading ? "Logging in..." : "Login"}
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">

@@ -1,9 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// =========================================================================
-//  KONFIGURASI RUTE (Edit di sini )
-// =========================================================================
 const PROTECTED_ROUTES = [
   "/dashboard"
 ];
@@ -20,7 +17,6 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  // Inisialisasi Supabase Client
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -44,29 +40,40 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Ambil data user yang sedang login
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 1. Jika user BELUM login dan mencoba akses rute yang dilindungi -> Lempar ke Login
   const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
     request.nextUrl.pathname.startsWith(route)
   );
 
+  // FIX 1: Copy cookie pas lempar ke halaman Login
   if (isProtectedRoute && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
-    return NextResponse.redirect(url);
+    const redirectResponse = NextResponse.redirect(url);
+    
+    // Salin paksa semua karcis ke lemparan baru
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return redirectResponse;
   }
 
-  // 2. Jika user SUDAH login tapi malah buka halaman Login/Sign-up -> Lempar ke Overview
   const isAuthRoute = AUTH_ROUTES.some((route) =>
     request.nextUrl.pathname.startsWith(route)
   );
 
+  // FIX 2: Copy cookie pas lempar ke Dashboard (biar karcis nggak hilang)
   if (isAuthRoute && user) {
     const url = request.nextUrl.clone();
     url.pathname = DEFAULT_DASHBOARD_PATH; 
-    return NextResponse.redirect(url);
+    const redirectResponse = NextResponse.redirect(url);
+    
+    // Salin paksa semua karcis ke lemparan baru
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return redirectResponse;
   }
 
   return supabaseResponse;
