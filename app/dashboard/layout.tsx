@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "@/components/ui/sonner";
 import { MobileNav } from "@/components/mobile-nav";
@@ -16,17 +15,17 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-// FIX: Dijadikan async supaya bisa ngecek user ke database
 export default async function DashboardLayout({ children }: DashboardLayoutProps) {
   
-  // --- SATPAM AUTH GUARD (Pencegah Login Loop) ---
+  // 1. KITA TETEP AMBIL DATA USER (CUMA BUAT NAMPILIN EMAIL DI AVATAR)
   const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (error || !user) {
-    redirect("/auth/login");
-  }
-  // -----------------------------------------------
+  // ==========================================================
+  // 2. SATPAM DALAM RESMI DIPECAT! 
+  // Bagian redirect("/auth/login") udah gw hapus dari sini.
+  // Sekarang urusan tendang-menendang 100% dipegang sama proxy.ts
+  // ==========================================================
 
   const navItems = [
     { label: "Overview", href: "/dashboard/overview", icon: LayoutDashboard },
@@ -64,9 +63,7 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         
-        {/* ========================================= */}
-        {/* 2. TOPBAR YANG UDAH ADA MOBILE NAV-NYA    */}
-        {/* ========================================= */}
+        {/* Topbar */}
         <header className="h-16 border-b bg-background flex items-center justify-between px-4 md:px-6">
           
           {/* Kiri: Tombol Hamburger & Judul */}
@@ -78,7 +75,8 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
           {/* Kanan: Profile Avatar */}
           <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center uppercase">
             <span className="text-sm font-medium text-muted-foreground">
-              {user.email ? user.email.charAt(0) : "U"}
+              {/* 3. INI YANG GW UBAH JADI user?.email BIAR AMAN ANTI-CRASH */}
+              {user?.email ? user.email.charAt(0) : "U"}
             </span>
           </div>
           
