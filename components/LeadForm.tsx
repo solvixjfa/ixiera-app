@@ -72,12 +72,12 @@ export function LeadForm({ serviceName }: { serviceName: string }) {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email Kerja <span className="text-red-500">*</span></Label>
+            <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
             <Input 
               id="email" 
               name="email" 
               type="email" 
-              placeholder="nama@perusahaan.com" 
+              placeholder="nama@kamu.com" 
               defaultValue={userEmail || ""} // Auto isi kalau udah login
               readOnly={!!userEmail} // Lock (kunci) kalau udah login
               className={userEmail ? "bg-muted" : ""}
@@ -88,7 +88,7 @@ export function LeadForm({ serviceName }: { serviceName: string }) {
 
           <div className="space-y-2">
             <Label htmlFor="company">Nama Perusahaan / Bisnis <span className="text-red-500">*</span></Label>
-            <Input id="company" name="company" placeholder="Contoh: PT Solvixone Jaya" required />
+            <Input id="company" name="company" placeholder="Contoh:  Jaya Abadi" required />
           </div>
 
           <div className="space-y-2">

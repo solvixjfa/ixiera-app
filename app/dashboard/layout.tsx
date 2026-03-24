@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "@/components/ui/sonner";
+import { MobileNav } from "@/components/mobile-nav";
 import {
   LayoutDashboard,
   Briefcase,
@@ -28,48 +29,21 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
   // -----------------------------------------------
 
   const navItems = [
-    {
-      label: "Overview",
-      href: "/dashboard/overview",
-      icon: LayoutDashboard,
-    },
-    {
-      label: "Projects",
-      href: "/dashboard/projects",
-      icon: Briefcase,
-    },
-    {
-      label: "Assets & Access",
-      href: "/dashboard/assets",
-      icon: FolderLock,
-    },
-    {
-      label: "Billing",
-      href: "/dashboard/billing",
-      icon: Receipt,
-    },
-    {
-      label: "Support",
-      href: "/dashboard/tickets",
-      icon: LifeBuoy,
-    },
-    {
-      label: "Logout",
-      href: "/auth/logout",
-      icon: LogOut,
-    },
+    { label: "Overview", href: "/dashboard/overview", icon: LayoutDashboard },
+    { label: "Projects", href: "/dashboard/projects", icon: Briefcase },
+    { label: "Assets & Access", href: "/dashboard/assets", icon: FolderLock },
+    { label: "Billing", href: "/dashboard/billing", icon: Receipt },
+    { label: "Support", href: "/dashboard/tickets", icon: LifeBuoy },
+    { label: "Logout", href: "/auth/logout", icon: LogOut },
   ];
 
   return (
     <div className="flex h-screen bg-muted/10">
-      {/* Sidebar */}
+      {/* Sidebar Desktop */}
       <aside className="hidden md:flex flex-col w-64 border-r bg-background">
-        {/* Sidebar Header */}
         <div className="h-16 flex items-center px-6 border-b">
           <h1 className="text-xl font-bold tracking-tight">Ixiera.id</h1>
         </div>
-
-        {/* Sidebar Navigation */}
         <nav className="flex-1 space-y-1 p-4">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -89,15 +63,25 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Topbar */}
-        <header className="h-16 border-b bg-background flex items-center justify-between px-6">
-          <h2 className="text-lg font-semibold">Client Portal</h2>
-          {/* Profile Avatar Placeholder - Otomatis nampilin huruf depan email */}
+        
+        {/* ========================================= */}
+        {/* 2. TOPBAR YANG UDAH ADA MOBILE NAV-NYA    */}
+        {/* ========================================= */}
+        <header className="h-16 border-b bg-background flex items-center justify-between px-4 md:px-6">
+          
+          {/* Kiri: Tombol Hamburger & Judul */}
+          <div className="flex items-center gap-3">
+            <MobileNav />
+            <h2 className="text-lg font-semibold">Client Portal</h2>
+          </div>
+
+          {/* Kanan: Profile Avatar */}
           <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center uppercase">
             <span className="text-sm font-medium text-muted-foreground">
               {user.email ? user.email.charAt(0) : "U"}
             </span>
           </div>
+          
         </header>
 
         {/* Main Content */}
