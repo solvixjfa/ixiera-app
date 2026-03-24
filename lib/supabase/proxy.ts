@@ -5,13 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 //  KONFIGURASI RUTE (Edit di sini )
 // =========================================================================
 const PROTECTED_ROUTES = [
-  "/dashboard",
-  "/overview",
-  "/projects",
-  "/assets",
-  "/billing",
-  "/tickets",
-  "/admin"
+  "/dashboard"
 ];
 
 const AUTH_ROUTES = [
@@ -19,8 +13,7 @@ const AUTH_ROUTES = [
   "/auth/sign-up"
 ];
 
-const DEFAULT_DASHBOARD_PATH = "/overview"; // Ke mana user dilempar setelah login sukses?
-// =========================================================================
+const DEFAULT_DASHBOARD_PATH = "/dashboard/overview";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({

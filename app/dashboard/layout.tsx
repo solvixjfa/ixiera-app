@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "@/components/ui/sonner";
 import {
   LayoutDashboard,
@@ -13,7 +15,18 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+// FIX: Dijadikan async supaya bisa ngecek user ke database
+export default async function DashboardLayout({ children }: DashboardLayoutProps) {
+  
+  // --- SATPAM AUTH GUARD (Pencegah Login Loop) ---
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    redirect("/auth/login");
+  }
+  // -----------------------------------------------
+
   const navItems = [
     {
       label: "Overview",
@@ -79,9 +92,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Topbar */}
         <header className="h-16 border-b bg-background flex items-center justify-between px-6">
           <h2 className="text-lg font-semibold">Client Portal</h2>
-          {/* Profile Avatar Placeholder */}
-          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-            <span className="text-sm font-medium text-muted-foreground">U</span>
+          {/* Profile Avatar Placeholder - Otomatis nampilin huruf depan email */}
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center uppercase">
+            <span className="text-sm font-medium text-muted-foreground">
+              {user.email ? user.email.charAt(0) : "U"}
+            </span>
           </div>
         </header>
 

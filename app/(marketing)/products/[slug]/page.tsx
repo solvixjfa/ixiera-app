@@ -3,11 +3,10 @@ import { ProductDetails } from '@/components/products/product-details';
 
 async function getProduct(slug: string) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://ixiera.id' : 'http://localhost:3000');
     const response = await fetch(`${baseUrl}/api/products/${slug}`, {
       next: { revalidate: 60 }, // Revalidate setiap 60 detik
     });
-
     if (!response.ok) {
       return null;
     }
