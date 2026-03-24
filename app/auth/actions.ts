@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 // Definisikan tipe untuk state yang direturn
 export type FormState = {
@@ -43,7 +44,8 @@ export async function loginAction(
 
   // Redirect dilakukan di luar blok try/catch untuk menghindari error Next.js
   if (isSuccess) {
-  redirect('/dashboard/overview')
+    revalidatePath('/', 'layout'); 
+    redirect('/dashboard/overview');
   }
 
   // Fallback return (kalau-kalau tidak masuk try atau tidak error tapi tidak sukses)
