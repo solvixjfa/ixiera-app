@@ -43,7 +43,8 @@ export function LoginForm({
     } else {
       // PAKE CARA BARBAR: Paksa browser pindah halaman secara full!
       // Ini ngejamin karcis (cookie) dari Supabase beneran kebawa.
-      window.location.href = "/dashboard/overview";
+      router.refresh()
+router.push("/dashboard/overview")
     }
   }; // <--- INI KURUNG PENUTUP YANG TADI HILANG BOS!
 

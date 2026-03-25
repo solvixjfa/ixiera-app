@@ -1,50 +1,22 @@
+export const dynamic = "force-dynamic"
 import { redirect } from "next/navigation";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server"; // ✅ pakai shared client
 import { StatCards } from "@/components/dashboard/StatCards";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"; 
+  Table, TableBody, TableCell,
+  TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 
 export default async function OverviewPage() {
-  // Error 1 Fix: Tambahkan 'await' karena di Next.js 16 cookies() adalah Promise
-  const cookieStore = await cookies(); 
+  // ✅ Pakai createClient dari lib — sudah ada setAll, sudah await cookies()
+  const supabase = await createClient();
 
-  // Inisialisasi Supabase Server Client
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-      },
-    }
-  );
-
- // 1. Cek User Login (TANPA REDIRECT!)
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-lg font-bold">Menyiapkan data overview...</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Jika tampilan ini tidak berubah, silakan muat ulang halaman.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // ✅ Redirect langsung, bukan loading div
+  if (!user) redirect("/auth/login");
 
-  // 2. Ambil ID Klien berdasarkan User
+  // Ambil ID Klien
   const { data: client } = await supabase
     .from("clients")
     .select("id")
@@ -59,7 +31,7 @@ export default async function OverviewPage() {
     );
   }
 
-  // 3. Ambil Data Metrik secara Paralel
+  // Ambil Data Metrik secara Paralel
   const [
     { count: activeProjectsCount },
     { data: unpaidInvoices },
@@ -71,19 +43,16 @@ export default async function OverviewPage() {
       .select("*", { count: "exact", head: true })
       .eq("client_id", client.id)
       .neq("status", "completed"),
-
     supabase
       .from("invoices")
       .select("balance_due")
       .eq("client_id", client.id)
       .eq("status", "unpaid"),
-
     supabase
       .from("support_tickets")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id)
       .eq("status", "open"),
-
     supabase
       .from("projects")
       .select("*")
@@ -92,10 +61,8 @@ export default async function OverviewPage() {
       .limit(5),
   ]);
 
-  // Kalkulasi total tagihan
   const totalUnpaid = unpaidInvoices?.reduce(
-    (sum, inv) => sum + Number(inv.balance_due || 0), 
-    0
+    (sum, inv) => sum + Number(inv.balance_due || 0), 0
   ) || 0;
 
   return (
@@ -113,7 +80,6 @@ export default async function OverviewPage() {
         openTickets={openTicketsCount || 0}
       />
 
-      {/* Recent Projects Section */}
       <div className="mt-8">
         <h2 className="text-2xl font-bold tracking-tight mb-4">Proyek Terbaru</h2>
         <div className="rounded-lg border">
@@ -139,9 +105,7 @@ export default async function OverviewPage() {
                     </TableCell>
                     <TableCell>
                       {new Date(project.created_at).toLocaleDateString("id-ID", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
+                        year: "numeric", month: "long", day: "numeric",
                       })}
                     </TableCell>
                   </TableRow>

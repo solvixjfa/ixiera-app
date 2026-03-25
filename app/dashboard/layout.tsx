@@ -1,7 +1,9 @@
+export const dynamic = "force-dynamic"
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "@/components/ui/sonner";
 import { MobileNav } from "@/components/mobile-nav";
+import { redirect } from "next/navigation"
 import {
   LayoutDashboard,
   Briefcase,
@@ -20,6 +22,9 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
   // 1. KITA TETEP AMBIL DATA USER (CUMA BUAT NAMPILIN EMAIL DI AVATAR)
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/auth/login")
+  }
 
 
   const navItems = [

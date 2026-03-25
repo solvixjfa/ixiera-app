@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic"
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -50,18 +51,8 @@ export default async function AssetsPage() {
  // 1. Cek User Login (TANPA REDIRECT!)
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-lg font-bold">Menyiapkan data overview...</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Jika tampilan ini tidak berubah, silakan muat ulang halaman.
-          </p>
-        </div>
-      </div>
-    );
-  }
+ if (!user) redirect("/auth/login");
+  
   // Get client_id from clients table
   const { data: clientData, error: clientError } = await supabase
     .from("clients")
