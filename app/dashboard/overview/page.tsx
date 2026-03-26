@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic"
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server"; // ✅ pakai shared client
+import { createClient } from "@/lib/supabase/server";
 import { StatCards } from "@/components/dashboard/StatCards";
 import {
   Table, TableBody, TableCell,
@@ -8,19 +9,15 @@ import {
 } from "@/components/ui/table";
 
 export default async function OverviewPage() {
-  // ✅ Pakai createClient dari lib — sudah ada setAll, sudah await cookies()
+  const { userId } = await auth();
+  if (!userId) redirect("/auth/login");
+
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // ✅ Redirect langsung, bukan loading div
-  if (!user) redirect("/auth/login");
-
-  // Ambil ID Klien
   const { data: client } = await supabase
     .from("clients")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("user_id", userId) // ← pakai userId dari Clerk
     .single();
 
   if (!client) {
@@ -31,40 +28,23 @@ export default async function OverviewPage() {
     );
   }
 
-  // Ambil Data Metrik secara Paralel
   const [
     { count: activeProjectsCount },
     { data: unpaidInvoices },
     { count: openTicketsCount },
     { data: recentProjects }
   ] = await Promise.all([
-    supabase
-      .from("projects")
-      .select("*", { count: "exact", head: true })
-      .eq("client_id", client.id)
-      .neq("status", "completed"),
-    supabase
-      .from("invoices")
-      .select("balance_due")
-      .eq("client_id", client.id)
-      .eq("status", "unpaid"),
-    supabase
-      .from("support_tickets")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("status", "open"),
-    supabase
-      .from("projects")
-      .select("*")
-      .eq("client_id", client.id)
-      .order("created_at", { ascending: false })
-      .limit(5),
+    supabase.from("projects").select("*", { count: "exact", head: true }).eq("client_id", client.id).neq("status", "completed"),
+    supabase.from("invoices").select("balance_due").eq("client_id", client.id).eq("status", "unpaid"),
+    supabase.from("support_tickets").select("*", { count: "exact", head: true }).eq("user_id", userId).eq("status", "open"),
+    supabase.from("projects").select("*").eq("client_id", client.id).order("created_at", { ascending: false }).limit(5),
   ]);
 
   const totalUnpaid = unpaidInvoices?.reduce(
     (sum, inv) => sum + Number(inv.balance_due || 0), 0
   ) || 0;
 
+  // JSX sama persis, tidak perlu diubah
   return (
     <section className="space-y-8">
       <div>
@@ -73,13 +53,11 @@ export default async function OverviewPage() {
           Selamat datang kembali, pantau metrik dan aktivitas Anda di sini.
         </p>
       </div>
-
       <StatCards
         activeProjects={activeProjectsCount || 0}
         totalUnpaid={totalUnpaid}
         openTickets={openTicketsCount || 0}
       />
-
       <div className="mt-8">
         <h2 className="text-2xl font-bold tracking-tight mb-4">Proyek Terbaru</h2>
         <div className="rounded-lg border">

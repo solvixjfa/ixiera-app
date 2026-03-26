@@ -1,4 +1,7 @@
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
+
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,51 +12,34 @@ import Link from "next/link";
 interface Project {
   id: string;
   name: string;
-  project_code: string;
+  project_code: string | null;
   status: "pending" | "in_progress" | "completed";
   progress: number;
-  deadline: string;
-  type: string;
+  deadline: string | null;
+  type: string | null;
   staging_url: string | null;
 }
 
 export default async function ProjectsPage() {
+  // 1. Wajib Clerk Auth
+  const { userId } = await auth();
+  if (!userId) redirect("/auth/login");
+
+  // 2. Init Supabase
   const supabase = await createClient();
 
-  // 1. Ambil data User (TANPA REDIRECT!)
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // 2. Tameng Anti-Crash & Anti-Loop
-  if (!user) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-lg font-bold">Menyiapkan data proyek...</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Jika tampilan ini tidak berubah, silakan muat ulang halaman.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // 3. Ambil data Client (Sekarang user.id DIJAMIN aman!)
+  // 3. Ambil client_id berdasarkan Clerk user_id
   const { data: clientData, error: clientError } = await supabase
     .from("clients")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .single();
 
   if (clientError || !clientData) {
     return (
-      <section className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Proyek Saya</h1>
-          <p className="text-muted-foreground">
-            Profil klien Anda sedang diproses. Proyek akan segera muncul di sini.
-          </p>
-        </div>
-      </section>
+      <div className="flex h-[50vh] items-center justify-center">
+        <p className="text-muted-foreground">Profil klien sedang disiapkan...</p>
+      </div>
     );
   }
 
@@ -67,7 +53,7 @@ export default async function ProjectsPage() {
   if (projectsError) {
     console.error("Error fetching projects:", projectsError);
     return (
-      <div className="p-4 border border-red-200 bg-red-50 text-red-800 rounded-md">
+      <div className="p-4 border border-red-200 bg-red-50 text-red-800 rounded-md text-center max-w-md mx-auto mt-10">
         Gagal memuat daftar proyek. Silakan coba lagi nanti.
       </div>
     );
@@ -87,8 +73,9 @@ export default async function ProjectsPage() {
     }
   };
 
-  // Helper function to format date in Indonesian locale
-  const formatDate = (dateString: string): string => {
+  // Helper function to format date in Indonesian locale (dengan fallback jika null)
+  const formatDate = (dateString: string | null): string => {
+    if (!dateString) return "-";
     return new Intl.DateTimeFormat("id-ID", {
       year: "numeric",
       month: "long",
@@ -137,19 +124,19 @@ export default async function ProjectsPage() {
               <CardContent className="flex-grow space-y-4">
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">
-                    <span className="font-medium">Kode:</span> {project.project_code}
+                    <span className="font-medium">Kode:</span> {project.project_code || "-"}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    <span className="font-medium">Tipe:</span> {project.type}
+                    <span className="font-medium">Tipe:</span> {project.type || "Development"}
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Progres</span>
-                    <span className="text-sm font-semibold">{project.progress}%</span>
+                    <span className="text-sm font-semibold">{project.progress || 0}%</span>
                   </div>
-                  <Progress value={project.progress} className="h-2" />
+                  <Progress value={project.progress || 0} className="h-2" />
                 </div>
 
                 <div>
@@ -167,6 +154,7 @@ export default async function ProjectsPage() {
                     </a>
                   </Button>
                 )}
+                {/* Tombol Detail Proyek untuk menuju halaman [id] */}
                 <Button size="sm" asChild className="flex-1">
                   <Link href={`/dashboard/projects/${project.id}`}>
                     Detail Proyek
@@ -181,7 +169,7 @@ export default async function ProjectsPage() {
           <Card className="w-full max-w-sm">
             <CardContent className="pt-6 text-center">
               <p className="text-muted-foreground">Belum ada proyek yang berjalan</p>
-            </CardContent>
+            </CardContent> 
           </Card>
         </div>
       )}

@@ -1,8 +1,8 @@
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowRight } from "lucide-react";
 import {
@@ -15,58 +15,43 @@ import {
 } from "@/components/ui/table";
 
 export default async function TicketsPage() {
-  const cookieStore = await cookies();
+  // 1. Wajib Clerk Auth
+  const { userId } = await auth();
+  if (!userId) redirect("/auth/login");
 
-  // Inisialisasi Supabase Server Client (Sesuai referensi Anda)
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-      },
-    }
-  );
+  // 2. Init Supabase
+  const supabase = await createClient();
 
-  // 1. Cek User Login (TANPA REDIRECT!)
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-lg font-bold">Menyiapkan data overview...</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Jika tampilan ini tidak berubah, silakan muat ulang halaman.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // 2. Ambil ID Klien berdasarkan User
-  const { data: client } = await supabase
+  // 3. Ambil ID Klien berdasarkan User
+  const { data: client, error: clientError } = await supabase
     .from("clients")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .single();
 
-  if (!client) {
+  if (clientError || !client) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
-        <p className="text-muted-foreground">Profil klien tidak ditemukan...</p>
+        <p className="text-muted-foreground">Profil klien sedang disiapkan...</p>
       </div>
     );
   }
 
-  // 3. Fetch Data Tickets berdasarkan client_id
-  const { data: tickets } = await supabase
+  // 4. Fetch Data Tickets berdasarkan client_id
+  const { data: tickets, error: ticketsError } = await supabase
     .from("support_tickets")
     .select("*")
     .eq("client_id", client.id)
     .order("created_at", { ascending: false });
+
+  if (ticketsError) {
+    console.error("Error fetching tickets:", ticketsError);
+    return (
+      <div className="p-4 border border-red-200 bg-red-50 text-red-800 rounded-md text-center max-w-md mx-auto mt-10">
+        Gagal memuat daftar tiket. Silakan coba lagi nanti.
+      </div>
+    );
+  }
 
   // Helper UI Status
   const renderStatus = (status: string) => {

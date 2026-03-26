@@ -1,4 +1,5 @@
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -9,36 +10,38 @@ import { Receipt, Calendar, ArrowRight } from "lucide-react";
 
 interface Invoice {
   id: string;
-  invoice_number: string;
+  invoice_number: string | null;
   title: string;
-  issue_date: string;
-  due_date: string;
-  total_amount: number;
-  balance_due: number;
+  issue_date: string | null;
+  due_date: string | null;
+  total_amount: number | null;
+  balance_due: number | null;
 }
 
 /**
  * Helper function to determine invoice status and badge variant
  */
-function getInvoiceStatus(balanceDue: number, dueDate: string) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const dueDateObj = new Date(dueDate);
-  dueDateObj.setHours(0, 0, 0, 0);
-
-  if (balanceDue === 0) {
+function getInvoiceStatus(balanceDue: number | null, dueDate: string | null) {
+  if (balanceDue === null || balanceDue === 0) {
     return {
       status: "Lunas",
       variant: "outline" as const,
     };
   }
 
-  if (balanceDue > 0 && dueDateObj < today) {
-    return {
-      status: "Jatuh Tempo",
-      variant: "destructive" as const,
-    };
+  if (dueDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dueDateObj = new Date(dueDate);
+    dueDateObj.setHours(0, 0, 0, 0);
+
+    if (balanceDue > 0 && dueDateObj < today) {
+      return {
+        status: "Jatuh Tempo",
+        variant: "destructive" as const,
+      };
+    }
   }
 
   return {
@@ -48,9 +51,10 @@ function getInvoiceStatus(balanceDue: number, dueDate: string) {
 }
 
 /**
- * Helper function to format date in Indonesian locale
+ * Helper function to format date safely
  */
-function formatDate(dateString: string): string {
+function formatDate(dateString: string | null): string {
+  if (!dateString) return "-";
   return new Intl.DateTimeFormat("id-ID", {
     year: "numeric",
     month: "long",
@@ -59,9 +63,10 @@ function formatDate(dateString: string): string {
 }
 
 /**
- * Helper function to format currency to Rupiah
+ * Helper function to format currency safely
  */
-function formatRupiah(amount: number): string {
+function formatRupiah(amount: number | null): string {
+  if (!amount) amount = 0;
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
@@ -71,46 +76,33 @@ function formatRupiah(amount: number): string {
 }
 
 export default async function BillingPage() {
+  // 1. Wajib Clerk Auth
+  const { userId } = await auth();
+  if (!userId) redirect("/auth/login");
+
   const supabase = await createClient();
 
-  // 1. Cek User Login (TANPA REDIRECT!)
-  const { data: { user } } = await supabase.auth.getUser();
+  // 2. Ambil client_id berdasarkan Clerk user_id
+  const { data: clientData, error: clientError } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("user_id", userId)
+    .single();
 
-  if (!user) {
+  if (clientError || !clientData) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <div className="text-center">
-          <h2 className="text-lg font-bold">Menyiapkan data overview...</h2>
+          <h2 className="text-lg font-bold">Profil klien sedang disiapkan...</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Jika tampilan ini tidak berubah, silakan muat ulang halaman.
+            Tagihan akan segera muncul di sini.
           </p>
         </div>
       </div>
     );
   }
 
-  // Get client_id from clients table
-  const { data: clientData, error: clientError } = await supabase
-    .from("clients")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (clientError || !clientData) {
-    // No client found
-    return (
-      <section className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tagihan & Pembayaran</h1>
-          <p className="text-muted-foreground">
-            Kelola dan pantau semua tagihan proyek Anda.
-          </p>
-        </div>
-      </section>
-    );
-  }
-
-  // Fetch invoices based on client_id
+  // 3. Fetch invoices based on client.id
   const { data: invoices, error: invoicesError } = await supabase
     .from("invoices")
     .select("id, invoice_number, title, issue_date, due_date, total_amount, balance_due")
@@ -119,7 +111,11 @@ export default async function BillingPage() {
 
   if (invoicesError) {
     console.error("Error fetching invoices:", invoicesError);
-    return <div>Error loading invoices</div>;
+    return (
+      <div className="p-4 border border-red-200 bg-red-50 text-red-800 rounded-md text-center max-w-md mx-auto mt-10">
+        Gagal memuat daftar tagihan. Silakan coba lagi nanti.
+      </div>
+    );
   }
 
   return (
@@ -143,7 +139,7 @@ export default async function BillingPage() {
                 {/* Card Header */}
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm text-muted-foreground">{invoice.invoice_number}</p>
+                    <p className="text-sm text-muted-foreground">{invoice.invoice_number || "-"}</p>
                     <Badge variant={variant}>{status}</Badge>
                   </div>
                 </CardHeader>
@@ -168,6 +164,7 @@ export default async function BillingPage() {
                 {/* Card Footer */}
                 <CardFooter>
                   <Button variant="outline" size="sm" asChild className="w-full">
+                    {/* Mengarah ke detail tagihan [id] */}
                     <Link href={`/dashboard/billing/${invoice.id}`}>
                       Lihat Detail
                       <ArrowRight className="w-4 h-4 ml-2" />

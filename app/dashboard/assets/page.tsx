@@ -1,4 +1,6 @@
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
+
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -46,44 +48,42 @@ function getAssetIcon(url: string | null, name: string) {
 }
 
 export default async function AssetsPage() {
+  // 1. Wajib Clerk Auth
+  const { userId } = await auth();
+  if (!userId) redirect("/auth/login");
+
+  // 2. Init Supabase
   const supabase = await createClient();
 
- // 1. Cek User Login (TANPA REDIRECT!)
-  const { data: { user } } = await supabase.auth.getUser();
-
- if (!user) redirect("/auth/login");
-  
-  // Get client_id from clients table
-  const { data: clientData, error: clientError } = await supabase
+  // 3. Ambil client_id berdasarkan Clerk user_id
+  const { data: client, error: clientError } = await supabase
     .from("clients")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .single();
 
-  if (clientError || !clientData) {
-    // No client found
+  if (clientError || !client) {
     return (
-      <section className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Assets & Access</h1>
-          <p className="text-muted-foreground">
-            Kelola dan akses semua aset digital yang dibagikan untuk Anda.
-          </p>
-        </div>
-      </section>
+      <div className="flex h-[50vh] items-center justify-center">
+        <p className="text-muted-foreground">Profil klien sedang disiapkan...</p>
+      </div>
     );
   }
 
-  // Fetch assets based on client_id
+  // 4. Fetch assets based on client.id
   const { data: assets, error: assetsError } = await supabase
     .from("assets")
     .select("id, name, description, url, is_public, downloads_count")
-    .eq("client_id", clientData.id)
+    .eq("client_id", client.id)
     .order("created_at", { ascending: false });
 
   if (assetsError) {
     console.error("Error fetching assets:", assetsError);
-    return <div>Error loading assets</div>;
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <p className="text-red-500 font-medium">Gagal memuat data aset. Silakan coba lagi.</p>
+      </div>
+    );
   }
 
   return (

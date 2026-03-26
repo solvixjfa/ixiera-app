@@ -1,4 +1,5 @@
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -11,39 +12,59 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 interface ProjectDetail {
   id: string;
   name: string;
-  project_code: string;
+  project_code: string | null;
   status: "pending" | "in_progress" | "completed";
   progress: number;
-  budget: number;
-  start_date: string;
-  deadline: string;
+  budget: number | null;
+  start_date: string | null;
+  deadline: string | null;
   staging_url: string | null;
-  type: string;
-  description?: string;
+  type: string | null;
+  description?: string | null;
 }
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
+
 interface Milestone {
   id: string;
   title: string;
   status: string;
-  due_date: string;
-  payment_amount: number;
+  due_date: string | null;
+  payment_amount: number | null;
 }
+
 export default async function ProjectDetailPage({ params }: PageProps) {
   const { id } = await params;
+  
+  // 1. Wajib Clerk Auth
+  const { userId } = await auth();
+  if (!userId) redirect("/auth/login");
+
   const supabase = await createClient();
 
-  // Get current user session
-  const { data: authData, error: authError } = await supabase.auth.getUser();
+  // 2. Ambil ID Klien sebagai Pengaman
+  const { data: clientData, error: clientError } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("user_id", userId)
+    .single();
 
-  // Query project detail by id
+  if (clientError || !clientData) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <p className="text-muted-foreground">Profil klien sedang disiapkan...</p>
+      </div>
+    );
+  }
+
+  // 3. Query project detail (DENGAN FILTER CLIENT ID)
   const { data: project, error: projectError } = await supabase
     .from("projects")
     .select("*")
     .eq("id", id)
+    .eq("client_id", clientData.id) // <-- KEAMANAN: Pastikan proyek ini milik klien yang sedang login
     .single();
 
   if (projectError || !project) {
@@ -56,17 +77,19 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           </Link>
         </Button>
         <div className="text-center py-12">
-          <p className="text-muted-foreground text-lg">Proyek tidak ditemukan</p>
+          <p className="text-muted-foreground text-lg">Proyek tidak ditemukan atau Anda tidak memiliki akses.</p>
         </div>
       </div>
     );
   }
-// Query milestones for this project
+
+  // 4. Query milestones for this project
   const { data: milestones, error: milestonesError } = await supabase
     .from("project_milestones")
     .select("id, title, status, due_date, payment_amount")
     .eq("project_id", id)
     .order("due_date", { ascending: true });
+
   // Helper function to determine badge variant based on status
   const getBadgeVariant = (status: string): "default" | "secondary" | "outline" => {
     switch (status) {
@@ -95,8 +118,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     }
   };
 
-  // Helper function to format date in Indonesian locale
-  const formatDate = (dateString: string): string => {
+  // Helper function to format date safely
+  const formatDate = (dateString: string | null): string => {
+    if (!dateString) return "-";
     return new Intl.DateTimeFormat("id-ID", {
       year: "numeric",
       month: "long",
@@ -104,8 +128,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     }).format(new Date(dateString));
   };
 
-  // Helper function to format currency to Rupiah
-  const formatRupiah = (amount: number): string => {
+  // Helper function to format currency safely
+  const formatRupiah = (amount: number | null): string => {
+    if (!amount) amount = 0;
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
@@ -136,7 +161,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         {/* Project Code and Date Range */}
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium">Kode Proyek:</span> {project.project_code}
+            <span className="font-medium">Kode Proyek:</span> {project.project_code || "-"}
           </p>
           <p className="text-sm text-muted-foreground">
             <span className="font-medium">Timeline:</span> {formatDate(project.start_date)} -{" "}
@@ -171,8 +196,8 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <p className="text-2xl font-bold">{project.progress}%</p>
-              <Progress value={project.progress} className="h-2" />
+              <p className="text-2xl font-bold">{project.progress || 0}%</p>
+              <Progress value={project.progress || 0} className="h-2" />
             </div>
           </CardContent>
         </Card>
@@ -199,7 +224,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         </Card>
       </div>
 
-     {/* Milestones Section */}
+      {/* Milestones Section */}
       <div className="space-y-6 mt-8">
         <h2 className="text-2xl font-bold tracking-tight">Milestones & Timeline</h2>
 
@@ -233,19 +258,19 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                   </CardHeader>
                   
                   {/* Tampilkan nominal pembayaran jika ada */}
-                  {milestone.payment_amount > 0 && (
+                  {milestone.payment_amount && milestone.payment_amount > 0 ? (
                     <CardContent className="py-0 pb-4">
                       <div className="inline-flex items-center text-sm font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-md">
                         Pembayaran: {formatRupiah(milestone.payment_amount)}
                       </div>
                     </CardContent>
-                  )}
+                  ) : null}
                 </Card>
               </div>
             ))}
           </div>
         )}
       </div>
-      </div>
+    </div>
   );
 }

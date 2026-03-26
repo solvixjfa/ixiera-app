@@ -1,16 +1,12 @@
 export const dynamic = "force-dynamic"
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { Toaster } from "@/components/ui/sonner";
 import { MobileNav } from "@/components/mobile-nav";
-import { redirect } from "next/navigation"
 import {
-  LayoutDashboard,
-  Briefcase,
-  FolderLock,
-  Receipt,
-  LifeBuoy,
-  LogOut,
+  LayoutDashboard, Briefcase, FolderLock,
+  Receipt, LifeBuoy, LogOut,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -18,14 +14,10 @@ interface DashboardLayoutProps {
 }
 
 export default async function DashboardLayout({ children }: DashboardLayoutProps) {
-  
-  // 1. KITA TETEP AMBIL DATA USER (CUMA BUAT NAMPILIN EMAIL DI AVATAR)
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    redirect("/auth/login")
-  }
+  const { userId } = await auth();
+  if (!userId) redirect("/auth/login");
 
+  const user = await currentUser();
 
   const navItems = [
     { label: "Overview", href: "/dashboard/overview", icon: LayoutDashboard },
@@ -38,7 +30,6 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
 
   return (
     <div className="flex h-screen bg-muted/10">
-      {/* Sidebar Desktop */}
       <aside className="hidden md:flex flex-col w-64 border-r bg-background">
         <div className="h-16 flex items-center px-6 border-b">
           <h1 className="text-xl font-bold tracking-tight">Ixiera.id</h1>
@@ -60,33 +51,21 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
         </nav>
       </aside>
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        
-        {/* Topbar */}
         <header className="h-16 border-b bg-background flex items-center justify-between px-4 md:px-6">
-          
-          {/* Kiri: Tombol Hamburger & Judul */}
           <div className="flex items-center gap-3">
             <MobileNav />
             <h2 className="text-lg font-semibold">Client Portal</h2>
           </div>
-
-          {/* Kanan: Profile Avatar */}
           <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center uppercase">
             <span className="text-sm font-medium text-muted-foreground">
-              {/* 3. INI YANG GW UBAH JADI user?.email BIAR AMAN ANTI-CRASH */}
-              {user?.email ? user.email.charAt(0) : "U"}
+              {user?.emailAddresses?.[0]?.emailAddress?.charAt(0) ?? "U"}
             </span>
           </div>
-          
         </header>
-
-        {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
       </div>
 
-      {/* Komponen Notifikasi Sonner */}
       <Toaster richColors position="top-right" />
     </div>
   );

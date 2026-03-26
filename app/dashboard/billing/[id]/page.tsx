@@ -1,4 +1,5 @@
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -10,15 +11,14 @@ import { ArrowLeft, CreditCard, Copy, Upload } from "lucide-react";
 
 interface Invoice {
   id: string;
-  invoice_number: string;
+  invoice_number: string | null;
   title: string;
-  issue_date: string;
-  due_date: string;
-  total_amount: number;
-  balance_due: number;
-  subtotal: number;
-  tax_amount: number;
-  [key: string]: any;
+  issue_date: string | null;
+  due_date: string | null;
+  total_amount: number | null;
+  balance_due: number | null;
+  subtotal: number | null;
+  tax_amount: number | null;
 }
 
 interface PageProps {
@@ -26,9 +26,10 @@ interface PageProps {
 }
 
 /**
- * Helper function to format date in Indonesian locale
+ * Helper function to format date safely
  */
-function formatDate(dateString: string): string {
+function formatDate(dateString: string | null): string {
+  if (!dateString) return "-";
   return new Intl.DateTimeFormat("id-ID", {
     year: "numeric",
     month: "long",
@@ -37,9 +38,10 @@ function formatDate(dateString: string): string {
 }
 
 /**
- * Helper function to format currency to Rupiah
+ * Helper function to format currency safely
  */
-function formatRupiah(amount: number): string {
+function formatRupiah(amount: number | null): string {
+  if (!amount) amount = 0;
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
@@ -50,20 +52,34 @@ function formatRupiah(amount: number): string {
 
 export default async function InvoiceDetailPage({ params }: PageProps) {
   const { id } = await params;
+  
+  // 1. Wajib Clerk Auth
+  const { userId } = await auth();
+  if (!userId) redirect("/auth/login");
+
   const supabase = await createClient();
 
-  // Get current user session
-  const { data: authData, error: authError } = await supabase.auth.getUser();
+  // 2. Ambil ID Klien sebagai Pengaman
+  const { data: clientData, error: clientError } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("user_id", userId)
+    .single();
 
-  if (authError || !authData.user) {
-    redirect("/auth/login");
+  if (clientError || !clientData) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <p className="text-muted-foreground">Profil klien sedang disiapkan...</p>
+      </div>
+    );
   }
 
-  // Fetch invoice detail by id
+  // 3. Fetch invoice detail by id (DENGAN FILTER CLIENT ID)
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
     .select("*")
     .eq("id", id)
+    .eq("client_id", clientData.id) // <-- KEAMANAN KETAT
     .single();
 
   if (invoiceError || !invoice) {
@@ -76,7 +92,7 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
           </Link>
         </Button>
         <div className="text-center py-12">
-          <p className="text-muted-foreground text-lg">Invoice tidak ditemukan</p>
+          <p className="text-muted-foreground text-lg">Invoice tidak ditemukan atau Anda tidak memiliki akses.</p>
         </div>
       </div>
     );
@@ -96,7 +112,7 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Invoice #{invoice.invoice_number}</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Invoice #{invoice.invoice_number || "-"}</h1>
         <Badge variant={isFullyPaid ? "outline" : "secondary"}>
           {isFullyPaid ? "Lunas" : "Belum Dibayar"}
         </Badge>
@@ -194,7 +210,7 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
 
                   <div>
                     <p className="text-muted-foreground text-xs">Atas Nama</p>
-                    <p className="font-semibold">Ixiera Teknologi</p>
+                    <p className="font-semibold">MUHAMMAD JEFRI SAPUTRA</p>
                   </div>
                 </div>
               </div>

@@ -1,4 +1,6 @@
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -12,29 +14,34 @@ interface PageProps {
 
 export default async function TicketDetailPage({ params }: PageProps) {
   const { id } = await params;
+  
+  // 1. Wajib Clerk Auth
+  const { userId } = await auth();
+  if (!userId) redirect("/auth/login");
+
   const supabase = await createClient();
 
- // 1. Cek User Login (TANPA REDIRECT!)
-  const { data: { user } } = await supabase.auth.getUser();
+  // 2. Ambil ID Klien sebagai Pengaman
+  const { data: client, error: clientError } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("user_id", userId)
+    .single();
 
-  if (!user) {
+  if (clientError || !client) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-lg font-bold">Menyiapkan data overview...</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Jika tampilan ini tidak berubah, silakan muat ulang halaman.
-          </p>
-        </div>
+        <p className="text-muted-foreground">Profil klien sedang disiapkan...</p>
       </div>
     );
   }
 
-  // 2. Fetch Ticket Info
+  // 3. Fetch Ticket Info (DENGAN FILTER KEAMANAN CLIENT ID)
   const { data: ticket } = await supabase
     .from("support_tickets")
     .select("*")
     .eq("id", id)
+    .eq("client_id", client.id) // <-- Mencegah kebocoran data
     .single();
 
   if (!ticket) {
@@ -46,18 +53,18 @@ export default async function TicketDetailPage({ params }: PageProps) {
           </Link>
         </Button>
         <div className="flex h-[50vh] items-center justify-center">
-          <p className="text-muted-foreground">Tiket tidak ditemukan.</p>
+          <p className="text-muted-foreground">Tiket tidak ditemukan atau Anda tidak memiliki akses.</p>
         </div>
       </div>
     );
   }
 
-  // 3. Fetch Ticket Messages (Urut dari yang terlama ke terbaru)
+  // 4. Fetch Ticket Messages
   const { data: messages } = await supabase
     .from("ticket_messages")
     .select("*")
     .eq("ticket_id", id)
-    .eq("is_internal", false) // Jangan tampilkan catatan internal admin ke klien
+    .eq("is_internal", false)
     .order("created_at", { ascending: true });
 
   // Helpers
@@ -125,9 +132,7 @@ export default async function TicketDetailPage({ params }: PageProps) {
         <div className="space-y-4">
           {messages && messages.length > 0 ? (
             messages.map((msg) => {
-              // Jika user_id pesan sama dengan user login, berarti ini pesan klien (kanan).
-              // Jika beda/kosong, berarti pesan dari Admin Ixiera (kiri).
-              const isClient = msg.user_id === user.id;
+              const isClient = msg.user_id === userId;
 
               return (
                 <div key={msg.id} className={`flex ${isClient ? "justify-end" : "justify-start"}`}>
@@ -158,14 +163,13 @@ export default async function TicketDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Reply Box (UI Only - Form Submission butuh Client Component) */}
+      {/* Reply Box (Static UI) */}
       {ticket.status !== "resolved" && (
         <Card className="mt-8 border-primary/20 shadow-sm">
           <CardHeader className="py-4">
             <CardTitle className="text-sm">Balas Tiket</CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Nantinya ini diganti dengan <form> yang memanggil Server Action */}
             <div className="space-y-4">
               <textarea 
                 className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50" 

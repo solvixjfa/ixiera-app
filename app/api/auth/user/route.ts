@@ -1,29 +1,13 @@
-import { createClient } from "@/lib/supabase/server";
-import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
-export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ user: null }, { status: 200 });
-    }
-
-    return NextResponse.json(
-      {
-        user: {
-          id: user.id,
-          email: user.email,
-        },
-      },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("Error fetching user:", error);
-    return NextResponse.json({ user: null }, { status: 200 });
+export async function GET() {
+  const { userId } = await auth();
+  
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Kembalikan JSON yang valid biar template lu nggak crash
+  return NextResponse.json({ userId });
 }

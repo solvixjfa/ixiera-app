@@ -1,11 +1,12 @@
-import { SignUpForm } from "@/components/sign-up-form";
+import { SignUp } from "@clerk/nextjs";
 
 export default function Page() {
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-sm">
-        <SignUpForm />
-      </div>
+    <div className="flex min-h-screen items-center justify-center">
+      <SignUp 
+        routing="hash"
+        forceRedirectUrl="/dashboard/overview"
+      />
     </div>
   );
 }

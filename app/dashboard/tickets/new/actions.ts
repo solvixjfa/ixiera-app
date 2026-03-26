@@ -1,47 +1,52 @@
 "use server";
 
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 
 export async function createTicket(formData: FormData) {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll(); } } }
-  );
+  // 1. Cek keamanan Clerk
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) throw new Error("Unauthorized");
-
+  // 2. Ambil data dari form
   const subject = formData.get("subject") as string;
   const category = formData.get("category") as string;
   const priority = formData.get("priority") as string;
   const description = formData.get("description") as string;
 
-  const { data: client, error: clientError } = await supabase
+  const supabase = await createClient();
+
+  // 3. Cari ID Klien
+  const { data: client } = await supabase
     .from("clients")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .single();
 
-  if (clientError || !client) throw new Error("Client profile not found");
+  if (!client) throw new Error("Client not found");
 
-  const ticketNumber = `TCK-${Math.floor(1000 + Math.random() * 9000)}`;
+  // 4. Generate Nomor Tiket Otomatis
+  const ticketNumber = `TCK-${new Date().toISOString().slice(2,10).replace(/-/g,'')}-${Math.floor(Math.random() * 10000)}`;
 
-  const { error: insertError } = await supabase.from("support_tickets").insert({
+  // 5. Insert ke tabel support_tickets
+  const { error } = await supabase.from("support_tickets").insert({
     client_id: client.id,
-    user_id: user.id,
+    user_id: userId,
     ticket_number: ticketNumber,
-    subject,
-    category,
-    priority,
-    description,
+    subject: subject,
+    title: subject,
+    priority: priority,
     status: "open",
+    description: description
   });
 
-  if (insertError) throw new Error(insertError.message);
+  if (error) {
+    console.error("Insert Ticket Error:", error);
+    return { success: false, error: error.message };
+  }
 
-  // INI KUNCINYA: Jangan pakai redirect di server action, return ini aja
-  return { success: true }; 
+  // 6. Refresh halaman daftar tiket biar tiket baru langsung muncul
+  revalidatePath("/dashboard/tickets");
+  return { success: true };
 }
