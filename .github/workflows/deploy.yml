@@ -3,13 +3,16 @@ name: Deploy Supabase Edge Functions
 on:
   push:
     branches:
-      - staging # <--- ROBOT HANYA JALAN KALAU PUSH KE STAGING
+      - staging
     paths:
       - "supabase/functions/**"
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      # Membungkam warning deprecation Node.js 20
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
 
