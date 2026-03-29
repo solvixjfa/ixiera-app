@@ -1,6 +1,5 @@
 // @ts-nocheck
 // hook github workflows
-// supabase/functions/lead-automation/index.ts
 
 Deno.serve(async (req) => {
   try {
