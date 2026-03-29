@@ -2,10 +2,9 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-// Supabase client sekarang murni pakai ANON KEY sesuai dengan settingan Vercel lu
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! // <--- UDAH DIGANTI JADI ANON KEY
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 export async function submitLeadProject(formData: FormData, serviceName: string) {
@@ -15,7 +14,8 @@ export async function submitLeadProject(formData: FormData, serviceName: string)
   const whatsapp = formData.get("whatsapp") as string;
 
   try {
-    const { data, error } = await supabase
+    // KITA HAPUS .select() dan .single()
+    const { error } = await supabase
       .from("inquiries")
       .insert([
         { 
@@ -26,13 +26,12 @@ export async function submitLeadProject(formData: FormData, serviceName: string)
           whatsapp,
           status: 'new'
         }
-      ])
-      .select()
-      .single();
+      ]);
 
     if (error) throw error;
 
-    return { success: true, data };
+    // Gak perlu balikin data, cukup status sukses aja
+    return { success: true };
   } catch (error) {
     console.error("Error submitting inquiry:", error);
     return { success: false, error: "Gagal mengirim permintaan." };
