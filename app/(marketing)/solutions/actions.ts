@@ -2,11 +2,10 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-// Supabase client dengan Service Role (biar bisa bypass RLS kalau perlu, 
-// tapi di sini pakai anon key juga cukup karena INSERT di-izinkan publik)
+// Supabase client sekarang murni pakai ANON KEY sesuai dengan settingan Vercel lu
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Pakai Service Role biar aman di sisi server
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! // <--- UDAH DIGANTI JADI ANON KEY
 );
 
 export async function submitLeadProject(formData: FormData, serviceName: string) {

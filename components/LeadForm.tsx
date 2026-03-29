@@ -1,25 +1,23 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useState, useRef } from "react";
+import { toast } from "sonner"; // Popup notifikasi
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Rocket } from "lucide-react";
+import { Loader2, Rocket, CheckCircle2, RefreshCw } from "lucide-react";
 
-// Import Server Action yang udah kita bikin tadi
 import { submitLeadProject } from "@/app/(marketing)/solutions/actions";
 
 export function LeadForm({ serviceName }: { serviceName: string }) {
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null); // Buat reset form
 
-  // Clerk otomatis deteksi user (tanpa useEffect yang bikin error/loading lama)
-  const { isSignedIn, user } = useUser();
+  const { user } = useUser();
   const userEmail = user?.primaryEmailAddress?.emailAddress;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -29,32 +27,59 @@ export function LeadForm({ serviceName }: { serviceName: string }) {
     const formData = new FormData(event.currentTarget);
     
     try {
-      // Tembak data ke actions.ts
       const result = await submitLeadProject(formData, serviceName);
       
       if (result?.success) {
+        // 1. Munculin Popup Sukses
         toast.success("Permintaan Berhasil Diterima!", {
-          description: "Tim kami akan segera meninjau permintaan Anda.",
+          description: "Data Anda telah masuk ke sistem kami.",
         });
-
-        // SMART REDIRECT
-        if (isSignedIn) {
-          // Kalau udah punya akun, langsung lempar ke Dashboard
-          router.push("/dashboard/overview");
-        } else {
-          // Kalau belum punya akun, arahkan ke Sign Up + bawa emailnya biar gak ngetik 2x
-          router.push(`/auth/sign-up?email=${formData.get("email")}`); 
-        }
+        
+        // 2. Ubah UI biar gak bisa di-spam
+        setIsSubmitted(true);
+        
+        // 3. Bersihkan sisa ketikan di form
+        formRef.current?.reset(); 
       } else {
-        toast.error("Terjadi Kesalahan", { description: result?.error || "Gagal mengirim permintaan." });
+        toast.error("Terjadi Kesalahan", { 
+          description: result?.error || "Gagal mengirim permintaan." 
+        });
       }
     } catch (error) {
-      toast.error("Terjadi Kesalahan", { description: "Sistem sedang sibuk. Silakan coba lagi."});
+      toast.error("Sistem Sibuk / Timeout", { 
+        description: "Koneksi ke server terputus. Silakan coba tekan submit lagi."
+      });
     } finally {
       setIsLoading(false);
     }
   }
 
+  // UI JIKA SUKSES SUBMIT (Mencegah Spam)
+  if (isSubmitted) {
+    return (
+      <Card className="shadow-lg mt-12 bg-primary/5 border-2 border-primary/20">
+        <CardContent className="pt-10 pb-10 flex flex-col items-center text-center space-y-4">
+          <div className="h-16 w-16 bg-primary/20 rounded-full flex items-center justify-center mb-2">
+            <CheckCircle2 className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="text-2xl font-bold">Terima Kasih!</h3>
+          <p className="text-muted-foreground max-w-sm">
+            Permintaan untuk <strong>{serviceName}</strong> telah kami terima. Tim kami akan segera menghubungi Anda via WhatsApp.
+          </p>
+          <Button 
+            variant="outline" 
+            className="mt-4"
+            onClick={() => setIsSubmitted(false)} // Tombol buat ngisi form lagi
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Ajukan Proyek Lainnya
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // UI FORM NORMAL
   return (
     <Card className="border-primary/20 shadow-lg mt-12">
       <CardHeader>
@@ -67,20 +92,27 @@ export function LeadForm({ serviceName }: { serviceName: string }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
-            <Input 
-              id="email" 
-              name="email" 
-              type="email" 
-              placeholder="nama@perusahaan.com" 
-              defaultValue={userEmail || ""} // Auto isi kalau udah login Clerk
-              readOnly={!!userEmail} // Kunci field kalau udah login
-              className={userEmail ? "bg-muted cursor-not-allowed" : ""}
-              required 
-            />
-            {userEmail && <p className="text-xs text-muted-foreground">Email terdeteksi otomatis dari akun Anda.</p>}
+        {/* Tambahkan formRef di sini */}
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
+              <Input 
+                id="email" 
+                name="email" 
+                type="email" 
+                placeholder="nama@perusahaan.com" 
+                defaultValue={userEmail || ""} 
+                readOnly={!!userEmail} 
+                className={userEmail ? "bg-muted cursor-not-allowed" : ""}
+                required 
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="whatsapp">No. WhatsApp <span className="text-red-500">*</span></Label>
+              <Input id="whatsapp" name="whatsapp" type="tel" placeholder="0812xxxxxx" required />
+            </div>
           </div>
 
           <div className="space-y-2">
