@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { useUser, SignOutButton } from "@clerk/nextjs"; // <--- MESIN CLERK
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, ChevronDown, User as UserIcon } from "lucide-react";
@@ -9,15 +10,11 @@ import { Menu, ChevronDown, User as UserIcon } from "lucide-react";
 // SINKRONISASI: Ambil daftar menu dari Navbar
 import { menuItems } from "./Navbar";
 
-interface User {
-  id: string;
-  email: string;
-}
-
 export default function MobileMenu() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+  
+  // Ganti useEffect manual pakai hook sakti Clerk
+  const { isLoaded, isSignedIn, user } = useUser();
 
   const toggleMenu = (label: string) => {
     setOpenMenus((prev) => ({
@@ -25,23 +22,6 @@ export default function MobileMenu() {
       [label]: !prev[label],
     }));
   };
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await fetch("/api/auth/user");
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-        }
-      } catch (error) {
-        console.error("Failed to fetch user:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUser();
-  }, []);
 
   return (
     <Sheet>
@@ -106,8 +86,9 @@ export default function MobileMenu() {
 
         {/* Action Area di bawah (Sticky Bottom) */}
         <div className="p-6 border-t border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          {!loading && (
-            user ? (
+          {/* Tunggu Clerk selesai loading */}
+          {isLoaded && (
+            isSignedIn ? (
               <div className="flex flex-col gap-4">
                 {/* Profile Card User */}
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border/50">
@@ -116,14 +97,16 @@ export default function MobileMenu() {
                   </div>
                   <div className="flex flex-col overflow-hidden">
                     <span className="text-xs font-medium text-muted-foreground">Logged in as</span>
-                    <span className="text-sm font-medium truncate">{user.email}</span>
+                    <span className="text-sm font-medium truncate">{user?.primaryEmailAddress?.emailAddress}</span>
                   </div>
                 </div>
 
                 <div className="flex gap-2">
-                  <Button variant="outline" className="w-full rounded-xl" asChild>
-                    <Link href="/auth/logout">Logout</Link>
-                  </Button>
+                  <SignOutButton>
+                    <Button variant="outline" className="w-full rounded-xl">
+                      Logout
+                    </Button>
+                  </SignOutButton>
                   <Button className="w-full rounded-xl shadow-md" asChild>
                     <Link href="/dashboard/overview">Dashboard</Link>
                   </Button>

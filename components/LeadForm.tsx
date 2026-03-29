@@ -1,33 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Rocket } from "lucide-react";
+
+// Import Server Action yang udah kita bikin tadi
 import { submitLeadProject } from "@/app/(marketing)/solutions/actions";
 
-// PROPS: Inilah yang bikin 1 form bisa dipakai di 4 layanan berbeda!
 export function LeadForm({ serviceName }: { serviceName: string }) {
   const [isLoading, setIsLoading] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const router = useRouter();
 
-  // Efek untuk auto-detect email kalau udah login
-  useEffect(() => {
-    const checkUser = async () => {
-      const res = await fetch("/api/auth/user");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.user) setUserEmail(data.user.email);
-      }
-    };
-    checkUser();
-  }, []);
+  // Clerk otomatis deteksi user (tanpa useEffect yang bikin error/loading lama)
+  const { isSignedIn, user } = useUser();
+  const userEmail = user?.primaryEmailAddress?.emailAddress;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,24 +29,28 @@ export function LeadForm({ serviceName }: { serviceName: string }) {
     const formData = new FormData(event.currentTarget);
     
     try {
-      // Kirim form data dan NAMA LAYANAN ke server
+      // Tembak data ke actions.ts
       const result = await submitLeadProject(formData, serviceName);
       
       if (result?.success) {
         toast.success("Permintaan Berhasil Diterima!", {
-          description: "Sistem sedang menyiapkan ruang kerja Anda.",
+          description: "Tim kami akan segera meninjau permintaan Anda.",
         });
 
         // SMART REDIRECT
-        if (result.isLoggedIn) {
-          router.push("/dashboard/overview"); // Langsung masuk dashboard
+        if (isSignedIn) {
+          // Kalau udah punya akun, langsung lempar ke Dashboard
+          router.push("/dashboard/overview");
         } else {
-          // Arahkan ke Sign Up biar dia bikin akun pakai email yang tadi diisi
+          // Kalau belum punya akun, arahkan ke Sign Up + bawa emailnya biar gak ngetik 2x
           router.push(`/auth/sign-up?email=${formData.get("email")}`); 
         }
+      } else {
+        toast.error("Terjadi Kesalahan", { description: result?.error || "Gagal mengirim permintaan." });
       }
     } catch (error) {
-      toast.error("Terjadi Kesalahan", { description: "Gagal mengirim permintaan. Coba lagi."});
+      toast.error("Terjadi Kesalahan", { description: "Sistem sedang sibuk. Silakan coba lagi."});
+    } finally {
       setIsLoading(false);
     }
   }
@@ -66,7 +63,7 @@ export function LeadForm({ serviceName }: { serviceName: string }) {
           Mulai Projects {serviceName}
         </CardTitle>
         <CardDescription>
-          Ceritakan kebutuhan Anda. Kami akan buatkan proposal dan langsung menyiapkan ruang projects di Client Portal Anda.
+          Ceritakan kebutuhan Anda. Kami akan buatkan proposal dan segera menghubungi Anda untuk diskusi lebih lanjut.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -77,10 +74,10 @@ export function LeadForm({ serviceName }: { serviceName: string }) {
               id="email" 
               name="email" 
               type="email" 
-              placeholder="nama@kamu.com" 
-              defaultValue={userEmail || ""} // Auto isi kalau udah login
-              readOnly={!!userEmail} // Lock (kunci) kalau udah login
-              className={userEmail ? "bg-muted" : ""}
+              placeholder="nama@perusahaan.com" 
+              defaultValue={userEmail || ""} // Auto isi kalau udah login Clerk
+              readOnly={!!userEmail} // Kunci field kalau udah login
+              className={userEmail ? "bg-muted cursor-not-allowed" : ""}
               required 
             />
             {userEmail && <p className="text-xs text-muted-foreground">Email terdeteksi otomatis dari akun Anda.</p>}
@@ -88,7 +85,7 @@ export function LeadForm({ serviceName }: { serviceName: string }) {
 
           <div className="space-y-2">
             <Label htmlFor="company">Nama Perusahaan / Bisnis <span className="text-red-500">*</span></Label>
-            <Input id="company" name="company" placeholder="Contoh:  Jaya Abadi" required />
+            <Input id="company" name="company" placeholder="Contoh: PT Jaya Abadi" required />
           </div>
 
           <div className="space-y-2">
@@ -96,7 +93,7 @@ export function LeadForm({ serviceName }: { serviceName: string }) {
             <Textarea 
               id="description" 
               name="description" 
-              placeholder={`Ceritakan masalah yang ingin Anda selesaikan dengan ${serviceName}...`}
+              placeholder={`Ceritakan masalah yang ingin Anda selesaikan dengan layanan ${serviceName} ini...`}
               className="min-h-[120px]" 
               required 
             />
