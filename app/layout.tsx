@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { ClerkProvider } from "@clerk/nextjs";
+import Script from "next/script"; // <-- 1. IMPORT SCRIPT NEXT.JS
 import "./globals.css";
 
 const defaultUrl = process.env.NODE_ENV === 'production'
@@ -29,6 +30,14 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <body className={`${geistSans.className} antialiased`}>
+          
+          {/* <-- 2. SIHIR UMAMI ANALYTICS --> */}
+          <Script 
+            src="https://cloud.umami.is/script.js" 
+            data-website-id="8623ed6d-c276-407c-b49a-b03c01a11e0c" 
+            strategy="afterInteractive"
+          />
+
           <ThemeProvider
             attribute="class"
             defaultTheme="light"
