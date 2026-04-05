@@ -5,7 +5,7 @@ import { MessageCircle, Send, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
+import ReactMarkdown from 'react-markdown'; // <-- Import penerjemah AI
 
 export function ChatAssistant() {
   const [isOpen, setIsOpen] = useState(false);
@@ -28,24 +28,23 @@ export function ChatAssistant() {
 
       const { data } = await supabase.from('ai_conversations').select('messages').eq('session_id', id).maybeSingle();
       
-      // LOGIKA SAMBUTAN AMAN: Cek apakah riwayat chat ada. Kalau kosong, masukkan sambutan awal.
       if (data?.messages && data.messages.length > 0) {
         setMessages(data.messages);
       } else {
         setMessages([
           { 
             role: 'assistant', 
-            content: 'Halo! Saya asisten AI dari ixiera.id. Ada yang bisa saya bantu terkait layanan pembuatan website, automasi, atau AI assistant hari ini?' 
+            content: 'Halo Kak! 👋 Aku asisten AI dari Ixiera. Ada yang bisa aku bantu untuk kebutuhan website, automasi, atau AI untuk bisnis Kakak?' 
           }
         ]);
       }
     };
     init();
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, isOpen]);
 
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -75,31 +74,86 @@ export function ChatAssistant() {
 
   return (
     <>
-      <button onClick={() => setIsOpen(true)} className={`fixed bottom-6 right-6 z-[9999] rounded-full bg-black p-4 text-white ${isOpen ? 'hidden' : 'block'}`}>
-        <MessageCircle />
+      {/* FLOATING BUTTON (Support Dark Mode) */}
+      <button 
+        onClick={() => setIsOpen(true)} 
+        className={`fixed bottom-6 right-6 z-[9990] flex h-16 w-16 items-center justify-center rounded-full bg-black dark:bg-white text-white dark:text-black shadow-2xl transition-transform hover:scale-105 active:scale-95 ${isOpen ? 'hidden' : 'flex'}`}
+      >
+        <MessageCircle size={28} />
       </button>
 
+      {/* FULL SCREEN CHAT OVERLAY (Support Dark Mode) */}
       {isOpen && (
-        <Card className="fixed bottom-6 right-6 z-[9999] w-[350px] h-[500px] flex flex-col shadow-2xl border-2 border-black">
-          <div className="p-4 bg-black text-white flex justify-between items-center">
-            <span className="font-bold">IXIERA AI</span>
-            <X className="cursor-pointer" onClick={() => setIsOpen(false)} />
+        <div className="fixed inset-0 z-[9999] flex flex-col bg-white dark:bg-zinc-950 animate-in fade-in zoom-in-95 duration-200">
+          
+          {/* HEADER ELEGANT */}
+          <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-200 dark:border-zinc-800 bg-black dark:bg-zinc-900 px-6 py-4 text-white shadow-sm">
+            <div>
+              <h2 className="text-xl font-bold tracking-[0.2em] uppercase">Ixiera AI</h2>
+              <p className="text-xs tracking-wider text-gray-400">Tech & Automation Assistant</p>
+            </div>
+            <button onClick={() => setIsOpen(false)} className="rounded-full p-2 text-gray-300 transition-colors hover:bg-gray-800 dark:hover:bg-zinc-700">
+              <X size={28} />
+            </button>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white">
-            {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`p-2 rounded-lg text-sm ${m.role === 'user' ? 'bg-black text-white' : 'bg-gray-100 text-black border'}`}>
-                  {m.content}
+
+          {/* AREA CHAT */}
+          <div className="flex-1 overflow-y-auto bg-[#fafafa] dark:bg-zinc-950 p-4 sm:p-8">
+            <div className="mx-auto max-w-3xl space-y-6 pb-4">
+              {messages.map((m, i) => (
+                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div 
+                    className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-4 text-[15px] leading-relaxed shadow-sm ${
+                      m.role === 'user' 
+                        ? 'bg-black text-white dark:bg-zinc-100 dark:text-black rounded-br-none' 
+                        : 'bg-white text-black dark:bg-zinc-900 dark:text-gray-100 border border-gray-200 dark:border-zinc-800 rounded-bl-none'
+                    }`}
+                  >
+                   {/* INI KUNCI RAPIHNYA: Bungkus pakai div biar TypeScript gak ngamuk */}
+                    <div className="text-sm sm:text-[15px] [&>p]:mb-2 [&>p:last-child]:mb-0 [&>strong]:font-bold [&>ol]:list-decimal [&>ol]:ml-5 [&>ul]:list-disc [&>ul]:ml-5 [&>li]:mb-1">
+                      <ReactMarkdown>
+                        {m.content}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
+              ))}
+              
+              {/* ANIMASI LOADING (3 Titik) */}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="flex items-center space-x-2 rounded-2xl rounded-bl-none border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-5 py-4 shadow-sm">
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 dark:bg-gray-500"></div>
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 dark:bg-gray-500 delay-75"></div>
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 dark:bg-gray-500 delay-150"></div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
           </div>
-          <div className="p-4 border-t flex gap-2 bg-white">
-            <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} placeholder="Tanya sesuatu..." />
-            <Button onClick={handleSendMessage} disabled={isLoading} className="bg-black text-white"><Send size={16}/></Button>
+
+          {/* AREA INPUT (Fix Text Putih Hilang) */}
+          <div className="flex-shrink-0 border-t border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 pb-safe">
+            <div className="mx-auto flex max-w-3xl items-center gap-3">
+              <Input 
+                value={input} 
+                onChange={(e) => setInput(e.target.value)} 
+                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} 
+                placeholder="Tanya soal layanan, harga, atau AI..." 
+                className="flex-1 rounded-full border-gray-300 dark:border-zinc-700 bg-transparent text-gray-900 dark:text-white px-6 py-6 text-base shadow-sm focus-visible:ring-1 focus-visible:ring-black dark:focus-visible:ring-white placeholder:text-gray-400"
+              />
+              <Button 
+                onClick={handleSendMessage} 
+                disabled={isLoading} 
+                className="h-14 w-14 shrink-0 rounded-full bg-black text-white dark:bg-zinc-100 dark:text-black transition-transform hover:bg-gray-800 dark:hover:bg-zinc-300 active:scale-95"
+              >
+                <Send size={20}/>
+              </Button>
+            </div>
           </div>
-        </Card>
+
+        </div>
       )}
     </>
   );

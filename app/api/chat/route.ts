@@ -1,83 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
-// Pakai Node.js runtime dulu biar stabil di local
 export const runtime = 'nodejs'; 
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, sessionId, context } = await request.json();
+    const { messages, sessionId } = await request.json();
     
-    // 1. Panggil Groq dengan timeout lebih lama
-    const aiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    // Tembak langsung ke Direct API Hugging Face 
+    const HF_BACKEND_URL = process.env.HF_BACKEND_URL || 'https://ixiera-ixiera-backend.hf.space/api/chat/';
+
+    const response = await fetch(HF_BACKEND_URL, {
       method: 'POST',
       headers: { 
-        'Content-Type': 'application/json', 
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}` 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: 'Anda adalah Ixiera AI. Bantu klien dan pancing Nama/WA.' },
-          ...messages.map((m: any) => ({ role: m.role, content: m.content }))
-        ],
+        client_id: 'ixiera-hq', // Sesuai dengan yang kita test di Swagger
+        session_id: sessionId,
+        messages: messages
       }),
     });
 
-    if (!aiRes.ok) {
-      const errDetail = await aiRes.text();
-      throw new Error(`Groq Error: ${errDetail}`);
+    if (!response.ok) {
+      const errDetail = await response.text();
+      throw new Error(`Backend Python Error: ${errDetail}`);
     }
 
-    const data = await aiRes.json();
-    const aiText = data.choices?.[0]?.message?.content || "Maaf, saya gagal memproses jawaban.";
-
-    // 2. Simpan ke Supabase (Fix Error Constraint: Manual Check & Update/Insert)
-    const { data: existingSession } = await supabase
-      .from('ai_conversations')
-      .select('session_id')
-      .eq('session_id', sessionId)
-      .maybeSingle();
-
-    let dbError;
-
-    if (existingSession) {
-      // Jika session_id sudah ada -> UPDATE
-      const { error } = await supabase
-        .from('ai_conversations')
-        .update({
-          messages: [...messages, { role: 'assistant', content: aiText }],
-          context: context || {},
-          tokens_used: data.usage?.total_tokens || 0,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('session_id', sessionId);
-      dbError = error;
-    } else {
-      // Jika session_id belum ada -> INSERT
-      const { error } = await supabase
-        .from('ai_conversations')
-        .insert([{
-          session_id: sessionId,
-          messages: [...messages, { role: 'assistant', content: aiText }],
-          context: context || {},
-          model: 'llama-3.3-70b-versatile',
-          tokens_used: data.usage?.total_tokens || 0,
-          updated_at: new Date().toISOString(),
-        }]);
-      dbError = error;
-    }
-
-    if (dbError) {
-      console.error("SUPABASE ERROR:", dbError.message);
-    }
-
-    return NextResponse.json({ response: aiText });
+    const data = await response.json();
+    
+    // Balikin jawaban AI-nya ke frontend
+    return NextResponse.json({ response: data.response });
 
   } catch (err: any) {
     console.error("API ROUTE CRASH:", err.message);
