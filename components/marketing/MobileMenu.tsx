@@ -2,18 +2,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useUser, SignOutButton } from "@clerk/nextjs"; // <--- MESIN CLERK
+import { useUser, SignOutButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, ChevronDown, User as UserIcon } from "lucide-react";
 
-// SINKRONISASI: Ambil daftar menu dari Navbar
 import { menuItems } from "./Navbar";
 
 export default function MobileMenu() {
+  const [isOpen, setIsOpen] = useState(false);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   
-  // Ganti useEffect manual pakai hook sakti Clerk
   const { isLoaded, isSignedIn, user } = useUser();
 
   const toggleMenu = (label: string) => {
@@ -24,7 +23,7 @@ export default function MobileMenu() {
   };
 
   return (
-    <Sheet>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="md:hidden">
           <Menu className="h-5 w-5" />
@@ -55,13 +54,13 @@ export default function MobileMenu() {
                 ) : (
                   <Link
                     href={item.href}
+                    onClick={() => setIsOpen(false)}
                     className="flex items-center w-full px-4 py-3 text-sm font-medium rounded-xl hover:bg-muted/50 transition-all duration-200"
                   >
                     {item.label}
                   </Link>
                 )}
                 
-                {/* Tampilan Sub-menu yang lebih elegan (Inner Card) */}
                 <div 
                   className={`overflow-hidden transition-all duration-300 ease-in-out ${
                     openMenus[item.label] ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'
@@ -72,6 +71,7 @@ export default function MobileMenu() {
                       <Link
                         key={sub.href}
                         href={sub.href}
+                        onClick={() => setIsOpen(false)}
                         className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
                       >
                         {sub.label}
@@ -84,13 +84,10 @@ export default function MobileMenu() {
           </div>
         </div>
 
-        {/* Action Area di bawah (Sticky Bottom) */}
         <div className="p-6 border-t border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          {/* Tunggu Clerk selesai loading */}
           {isLoaded && (
             isSignedIn ? (
               <div className="flex flex-col gap-4">
-                {/* Profile Card User */}
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border/50">
                   <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
                     <UserIcon className="h-4 w-4 text-primary" />
@@ -108,17 +105,17 @@ export default function MobileMenu() {
                     </Button>
                   </SignOutButton>
                   <Button className="w-full rounded-xl shadow-md" asChild>
-                    <Link href="/dashboard/overview">Dashboard</Link>
+                    <Link href="/dashboard/overview" onClick={() => setIsOpen(false)}>Dashboard</Link>
                   </Button>
                 </div>
               </div>
             ) : (
               <div className="flex flex-col gap-3">
                 <Button variant="outline" className="w-full rounded-xl h-11" asChild>
-                  <Link href="/auth/login">Log In</Link>
+                  <Link href="/auth/login" onClick={() => setIsOpen(false)}>Log In</Link>
                 </Button>
                 <Button className="w-full rounded-xl h-11 shadow-md" asChild>
-                  <Link href="/auth/sign-up">Get Started</Link>
+                  <Link href="/auth/sign-up" onClick={() => setIsOpen(false)}>Get Started</Link>
                 </Button>
               </div>
             )
