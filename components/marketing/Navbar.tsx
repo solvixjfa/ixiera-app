@@ -5,15 +5,13 @@ import Link from 'next/link';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { AuthButton } from '@/components/auth-button';
 import dynamic from 'next/dynamic';
-import { ChevronDown } from 'lucide-react'; // <-- Tambahan untuk ikon panah dropdown
+import { ChevronDown } from 'lucide-react';
 
-// 1. Export menuItems supaya bisa di-import oleh MobileMenu (SINKRON!)
 export const menuItems = [
   { label: 'Products', href: '/products' },
   { 
     label: 'Solutions', 
     href: '/solutions',
-    // 👇 Tambahan subItems khusus untuk Solutions
     subItems: [
       { label: 'Web & App Development', href: '/solutions/web-app', desc: 'Sistem kustom & portal klien' },
       { label: 'Business Automation', href: '/solutions/automation', desc: 'Otomasi alur kerja & integrasi' },
@@ -25,16 +23,23 @@ export const menuItems = [
   { label: 'Contact', href: '/contact' },
 ];
 
-// Import tanpa ssr: false di sini, kita handle di dalam komponen saja
 const MobileMenu = dynamic(() => import('@/components/marketing/MobileMenu'));
 
 export function Navbar() {
   const [mounted, setMounted] = useState(false);
+  
+  // STATE BARU: Buat matiin paksa hover dropdown pas diklik
+  const [hideDropdown, setHideDropdown] = useState(false);
 
-  // Mencegah error hidrasi: hanya render elemen client-side setelah mounted
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // FUNGSI BARU: Bikin dropdown sembunyi 100ms biar efek hover-nya kereset
+  const handleDropdownClick = () => {
+    setHideDropdown(true);
+    setTimeout(() => setHideDropdown(false), 100);
+  };
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
@@ -52,7 +57,6 @@ export function Navbar() {
           {menuItems.map((item) => (
             <div key={item.label} className="relative group">
               {item.subItems ? (
-                // 👇 Render Menu dengan Dropdown (Khusus Solutions)
                 <>
                   <Link
                     href={item.href}
@@ -62,14 +66,19 @@ export function Navbar() {
                     <ChevronDown className="w-4 h-4 transition-transform group-hover:rotate-180" />
                   </Link>
                   
-                  {/* Kotak Dropdown yang Muncul Pas Di-hover */}
-                  <div className="absolute top-full left-0 mt-0 w-72 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-in-out">
+                  {/* 👇 PENERAPAN TRIK HIDE: Kalau hideDropdown true, paksa disembunyiin */}
+                  <div className={`absolute top-full left-0 mt-0 w-72 transition-all duration-200 ease-in-out ${
+                    hideDropdown 
+                      ? 'opacity-0 invisible' 
+                      : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'
+                  }`}>
                     <div className="pt-2">
                       <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg p-2 flex flex-col gap-1">
                         {item.subItems.map((sub) => (
                           <Link
                             key={sub.href}
                             href={sub.href}
+                            onClick={handleDropdownClick} // <-- PASANG FUNGSI DI SINI
                             className="p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                           >
                             <div className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
@@ -85,7 +94,6 @@ export function Navbar() {
                   </div>
                 </>
               ) : (
-                // 👇 Render Menu Biasa (Products, Blog, Contact)
                 <Link
                   href={item.href}
                   className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors py-2"
@@ -103,7 +111,7 @@ export function Navbar() {
           <AuthButton />
         </div>
 
-        {/* Mobile Menu - Hanya render jika sudah di client */}
+        {/* Mobile Menu */}
         <div className="md:hidden flex items-center gap-2">
           <ThemeSwitcher />
           {mounted && <MobileMenu />}

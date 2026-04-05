@@ -1,5 +1,6 @@
-"use client"; // INI KUNCI UTAMANYA
+"use client"; 
 
+import { useState } from "react"; // <-- 1. IMPORT useState
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
@@ -14,9 +15,13 @@ const navItems = [
 ];
 
 export function MobileNav() {
+  // 2. BIKIN STATE BUAT KONTROL BUKA-TUTUP MENU
+  const [isOpen, setIsOpen] = useState(false); 
+
   return (
     <div className="md:hidden">
-      <Sheet>
+      {/* 3. PASANG STATE KE COMPONENT SHEET */}
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon">
             <Menu className="h-5 w-5" />
@@ -34,6 +39,7 @@ export function MobileNav() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={() => setIsOpen(false)} // <-- 4. TUTUP MENU PAS LINK DIKLIK
                   className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
                 >
                   <Icon className="h-5 w-5" />
@@ -44,7 +50,7 @@ export function MobileNav() {
           </nav>
           <div className="p-4 border-t border-border/50">
             <Button variant="destructive" className="w-full justify-start" asChild>
-              <Link href="/auth/logout">
+              <Link href="/auth/logout" onClick={() => setIsOpen(false)}> {/* <-- TUTUP JUGA PAS LOGOUT DIKLIK */}
                 <LogOut className="h-5 w-5 mr-3" />
                 <span>Logout</span>
               </Link>
