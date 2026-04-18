@@ -1,5 +1,3 @@
-
-```markdownl
 # Ixiera Digital Agency & AI Orchestration Platform
 
 An enterprise-grade digital agency platform featuring a complex multi-agent AI orchestration backend. The architecture strictly separates a Next.js client, authenticated via Clerk, from a high-performance FastAPI service powered by LangGraph.
@@ -39,41 +37,25 @@ GEMINI_API_KEY=your_google_ai_studio_key
 GROQ_API_KEY=your_groq_api_key
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 TELEGRAM_CHAT_ID=your_telegram_chat_id
-
-```
-**Frontend Variables (Next.js / Vercel)**
-```env
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
 CLERK_SECRET_KEY=your_clerk_secret_key
 NEXT_PUBLIC_API_URL=your_fastapi_backend_url
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-```
-## Local Development Setup
-### 1. Frontend Setup
+Local Development Setup
+1. Frontend Setup
 Navigate to the frontend directory, configure your .env.local with Clerk and Supabase credentials, and install dependencies using pnpm:
-```bash
 pnpm install
 pnpm dev
 
-```
 The client application will run on http://localhost:3000.
-### 2. Backend Setup
+2. Backend Setup
 Navigate to the backend directory, create an .env file, and install Python dependencies:
-```bash
 pip install -r requirements.txt
-
-```
 Run the FastAPI development server:
-```bash
 uvicorn app.main:app --reload
-
-```
 API documentation (Swagger UI) is automatically generated and accessible at http://127.0.0.1:8000/docs.
-## Deployment
- * **Frontend:** Optimized for Vercel deployment. Ensure Clerk keys are added to the Vercel project settings.
- * **Backend:** Designed to be deployed on Hugging Face Spaces or standard Docker containers. Maintain security by restricting CORS origins to the production frontend domain.
-```
-
-```
+Deployment
+Frontend: Optimized for Vercel deployment. Ensure Clerk keys are added to the Vercel project settings.
+Backend: Designed to be deployed on Hugging Face Spaces or standard Docker containers. Maintain security by restricting CORS origins to the production frontend domain (ixiera.id).
